@@ -12,6 +12,8 @@ In Blender navigate to: <br/>
 
 and select the zipfile in the filedialog with a double-click. The Add-on should now be installed & enabled.<br/> 
 
+More information can be found in the [Vizoo Customer Portal](https://customers.vizoo3d.com/wp-content/uploads/2021/05/U3MBlenderAdd-on_documentation.pdf)</br>
+
 ### Importing U3Ms:
 After enabling the Add-on you can import any U3M to your active 3D object (meshes only) via:<br/>
 
