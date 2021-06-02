@@ -79,23 +79,21 @@ class U3MImporter:
     def get_texture_size(self):
         u3m_mat = self.u3m_obj.get_material()
         if u3m_mat.has_front():
-            if u3m_mat.front.alpha.texture != None:
-                texture_height = u3m_mat.front.alpha.texture.image.height
-                texture_width = u3m_mat.front.alpha.texture.image.width
-                return (texture_width, texture_height)
-            elif u3m_mat.front.basecolor.texture != None:
-                texture_height = u3m_mat.front.basecolor.texture.image.height
-                texture_width = u3m_mat.front.basecolor.textue.image.width
-                return (texture_width, texture_height)
+            side = u3m_mat.front
         else:
-            if u3m_mat.back.alpha.texture != None:
-                texture_height = u3m_mat.back.alpha.texture.image.height
-                texture_width = u3m_mat.back.alpha.texture.image.width
-                return (texture_width, texture_height)
-            elif u3m_mat.front.basecolor.texture != None:
-                texture_height = u3m_mat.back.basecolor.texture.image.height
-                texture_width = u3m_mat.back.basecolor.texture.image.width
-                return (texture_width, texture_height)
+            side = u3m_mat.back
+        textures = [
+            side.alpha.texture,
+            side.basecolor.texture,
+            side.displacement.texture,
+            side.metalness.texture,
+            side.normal.texture,
+            side.roughness.texture
+        ]
+        for texture in textures:
+            if texture != None:
+                return (texture.image.width, texture.image.height)
+        return (10, 10)
 
     def fill_shader_nodes(self):
         Shader.fill_shader_nodes(self.parser.get_u3m_version(), self.u3m_obj.to_dict(

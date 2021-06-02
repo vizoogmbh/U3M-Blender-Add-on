@@ -31,6 +31,8 @@ from import_export_U3M.views import (
     InitOperatorBase
 )
 
+from import_export_U3M.errors import U3MErrorHandler
+
 
 class ImportU3M(bpy.types.Operator, ImportHelper):
     bl_idname = "import_scene.u3m"
@@ -150,7 +152,8 @@ class U3MScaleOperator(bpy.types.Operator):
         name="Height (mm/repeat)", description="texture height", default=0)
 
     def scale(self, context):
-        utils.set_u3m_scale()
+        error_handler = U3MErrorHandler('USER')
+        utils.set_u3m_scale(error_handler)
 
     def set(self, context, obj, scale_x, scale_y, size):
         global_scale_x = 1/scale_x*(size/100)
