@@ -108,7 +108,7 @@ def render_edit_subpanel(self, context, side, level):
                                 row.prop(
                                     node.inputs[0], "default_value", text="Factor")
                             # normals have no operation property
-                            if p == "constant" and viz_dict[param]["type"] is not "texture_and_vector":
+                            if p == "constant" and viz_dict[param]["type"] != "texture_and_vector":
                                 node = u3m_tree.nodes[param + "_factor"]
                                 row.prop(node, "operation", text="")
                             if p == "offset":

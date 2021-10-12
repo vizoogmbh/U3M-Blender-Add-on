@@ -82,14 +82,22 @@ class U3MImporter:
             side = u3m_mat.front
         else:
             side = u3m_mat.back
-        textures = [
-            side.alpha.texture,
-            side.basecolor.texture,
-            side.displacement.texture,
-            side.metalness.texture,
-            side.normal.texture,
-            side.roughness.texture
+        properties = [
+            side.alpha,
+            side.basecolor,
+            side.displacement,
+            side.metalness,
+            side.normal,
+            side.roughness
         ]
+        textures = []
+        for prop in properties:
+            if prop != None:
+                try:
+                    texture = prop.texture
+                    textures.append(texture)
+                except AttributeError:
+                    pass
         for texture in textures:
             if texture != None:
                 return (texture.image.width, texture.image.height)

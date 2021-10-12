@@ -75,7 +75,11 @@ class Image:
         dpi = ImageDPI.from_dict(obj.get("dpi"))
         height = U3M.from_float(obj.get("height"))
         path = RelativeFilePath(U3M.from_str(obj.get("path")), error_handler)
-        repeat = Repeat.from_dict(obj.get("repeat"))
+        if obj.get("repeat") is None:
+            default = {'mode': 'normal', 'rotation': 0}
+            repeat = Repeat.from_dict(default)
+        else:
+            repeat = Repeat.from_dict(obj.get("repeat"))
         width = U3M.from_float(obj.get("width"))
         return Image(dpi, height, path, repeat, width)
 
