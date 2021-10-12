@@ -18,7 +18,7 @@ class UUID4:
 
     def validate_uuid4(self, uuid_string):
         try:
-            val = UUID(uuid_string, version=4)
+            val = UUID(uuid_string)
         except Exception:
             return False
         return val.hex == uuid_string.replace('-', '').replace('{', '').replace('}', '')
