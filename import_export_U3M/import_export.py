@@ -56,7 +56,7 @@ class U3MImporter:
             t.write("texture_width = '%s'\n" % str(texture_size[0]))
             t.write("texture_height = '%s'\n" % str(texture_size[1]))
             t.write("u3m_dir = r'%s'\n" % str(self.u3m_dir))
-            t.write("u3m_data = '%s'\n" % u3m_str)
+            t.write("u3m_data = r'%s'\n" % u3m_str)
             t.write("preview = '%s'\n" % str(preview))
             t.write("icon = '%s'\n" % str(icon))
             blender_obj.active_material.node_tree.nodes["Metadata"].script = t
@@ -241,13 +241,15 @@ class U3MExporter:
         else:
             u3m_obj.get_material().add_side(side)
             u3m_side_dict = u3m_obj.get_material().get_side(side)
-
-        viz_tan_props = ["alpha", "displacement", "metalness", "normal", "roughness", "anisotropy_rotation", "anisotropy_value",
-                         "clearcoat_roughness", "ior", "sheen_tint", "sheen_value", "specular_tint", "specular_value", "specular_value", "transmission"]
-        for viz_prop in viz_tan_props:
-            self.compare_and_update_texture_and_number(
-                viz_prop, u3m_side_dict, shader_side_dict)
-        self.compare_and_update_basecolor(u3m_side_dict, shader_side_dict)
+        for viz_prop in shader_side_dict:
+            if shader_side_dict.get(viz_prop).get("type") == "texture_and_number":
+                self.compare_and_update_texture_and_number(
+                    viz_prop, u3m_side_dict, shader_side_dict)
+            elif shader_side_dict.get(viz_prop).get("type") == "texture_and_color":
+                self.compare_and_update_texture_and_color(
+                    viz_prop, u3m_side_dict, shader_side_dict)
+            else:
+                pass
         if self.modified:
             u3m_material.update()
         if u3m_material.get_name() != new_material_name:
@@ -283,8 +285,8 @@ class U3MExporter:
             print("EXCEPTION: U3MExporter.compare_and_update_texture_and_number(): Couldn't update value: ", viz_prop)
 
     def compare_and_update_constant(self, viz_prop, u3m_props, shader_props):
-        if viz_prop == "normal" or viz_prop == "displacement":
-            pass  # normal and displacement dont have a constant in the shader
+        if viz_prop == "normal" or viz_prop == "clearcoat_normal" or viz_prop == "displacement":
+            pass  # normal, clearcoat normal and displacement dont have a constant in the shader
         elif self.compare_float(u3m_props.constant, shader_props.get("constant")[1]):
             u3m_props.constant = shader_props.get("constant")[1]
             self.modified = True
@@ -304,69 +306,70 @@ class U3MExporter:
             self.modified = True
 
     def compare_and_update_texture_offset(self, viz_prop, u3m_props, shader_props):
-        if viz_prop == "normal" or viz_prop == "displacement":
-            pass  # normal and disp doesnt have a offset in the shader
+        if viz_prop == "normal" or viz_prop == "clearcoat_normal" or viz_prop == "displacement":
+            pass  # normal, cc normal and disp dont have a offset in the shader
         elif self.compare_float(u3m_props.texture.offset, shader_props.get("offset")[1]):
             u3m_props.texture.offset = shader_props.get("offset")[1]
             self.modified = True
 
-    def compare_and_update_basecolor(self, u3m_side_dict, shader_side_dict):
+    def compare_and_update_texture_and_color(self, viz_prop, u3m_side_dict, shader_side_dict):
         try:
-            basecolor_props = shader_side_dict.get(
-                "basecolor").get("properties")
+            shader_props = shader_side_dict.get(
+                viz_prop).get("properties")
+            u3m_props = u3m_side_dict.get(viz_prop)
             self.compare_and_update_bgr_constants(
-                u3m_side_dict, basecolor_props)
+                u3m_props, shader_props)
             # check if original file and shader have a texture
-            if u3m_side_dict.basecolor.texture != "null" and basecolor_props.get("texture")[1] != None:
+            if u3m_side_dict.basecolor.texture != "null" and shader_props.get("texture")[1] != None:
                 self.compare_and_update_bgr_factors(
-                    u3m_side_dict, basecolor_props)
+                    u3m_props, shader_props)
                 self.compare_and_update_texture_path(
-                    u3m_side_dict.basecolor, basecolor_props)
+                    u3m_side_dict.basecolor, shader_props)
             # check if texture was added in editor
-            elif u3m_side_dict.basecolor.texture != "null" and basecolor_props.get("texture")[1] != None:
-                u3m_side_dict.basecolor.add_texture()
-                u3m_side_dict.basecolor.texture.factor.b = basecolor_props.get("factor_b")[
+            elif u3m_props.texture != "null" and shader_props.get("texture")[1] != None:
+                u3m_props.add_texture()
+                u3m_props.texture.factor.b = shader_props.get("factor_b")[
                     1]
-                u3m_side_dict.basecolor.texture.factor.g = basecolor_props.get("factor_g")[
+                u3m_props.texture.factor.g = shader_props.get("factor_g")[
                     1]
-                u3m_side_dict.basecolor.texture.factor.r = basecolor_props.get("factor_r")[
+                u3m_props.texture.factor.r = shader_props.get("factor_r")[
                     1]
-                u3m_side_dict.basecolor.texture.image.path.set_path(
-                    basecolor_props.get("texture")[1], self.error_handler)
+                u3m_props.texture.image.path.set_path(
+                    shader_props.get("texture")[1], self.error_handler)
                 self.modified = True
             # check if texture was removed in editor
-            elif u3m_side_dict.basecolor.texture != "null" and basecolor_props.get("texture")[1] == None:
-                u3m_side_dict.alpha.remove_texture()
+            elif u3m_props.texture != "null" and shader_props.get("texture")[1] == None:
+                u3m_props.remove_texture()
                 self.modified = True
-        except Exception:
+        except Exception as e:
             print(
-                "EXCEPTION: U3MExporter.compare_and_update_basecolor(): Couldn't update value! ")
+                "EXCEPTION: U3MExporter.compare_and_update_texture_and_color(): Couldn't update value! ", viz_prop, e)
 
-    def compare_and_update_bgr_constants(self, u3m_side_dict, basecolor_props):
-        if self.compare_float(u3m_side_dict.basecolor.constant.b, basecolor_props.get("constant_b")[1]):
-            u3m_side_dict.basecolor.constant.b = basecolor_props.get("constant_b")[
+    def compare_and_update_bgr_constants(self, u3m_props, shader_props):
+        if self.compare_float(u3m_props.constant.b, shader_props.get("constant_b")[1]):
+            u3m_props.constant.b = shader_props.get("constant_b")[
                 1]
             self.modified = True
-        if self.compare_float(u3m_side_dict.basecolor.constant.g, basecolor_props.get("constant_g")[1]):
-            u3m_side_dict.basecolor.constant.g = basecolor_props.get("constant_g")[
+        if self.compare_float(u3m_props.constant.g, shader_props.get("constant_g")[1]):
+            u3m_props.constant.g = shader_props.get("constant_g")[
                 1]
             self.modified = True
-        if self.compare_float(u3m_side_dict.basecolor.constant.r, basecolor_props.get("constant_r")[1]):
-            u3m_side_dict.basecolor.constant.r = basecolor_props.get("constant_r")[
+        if self.compare_float(u3m_props.constant.r, shader_props.get("constant_r")[1]):
+            u3m_props.constant.r = shader_props.get("constant_r")[
                 1]
             self.modified = True
 
-    def compare_and_update_bgr_factors(self, u3m_side_dict, basecolor_props):
-        if self.compare_float(u3m_side_dict.basecolor.texture.factor.b, basecolor_props.get("factor_b")[1]):
-            u3m_side_dict.basecolor.texture.factor.b = basecolor_props.get("factor_b")[
+    def compare_and_update_bgr_factors(self, u3m_props, shader_props):
+        if self.compare_float(u3m_props.texture.factor.b, shader_props.get("factor_b")[1]):
+            u3m_props.texture.factor.b = shader_props.get("factor_b")[
                 1]
             self.modified = True
-        if self.compare_float(u3m_side_dict.basecolor.texture.factor.g, basecolor_props.get("factor_g")[1]):
-            u3m_side_dict.basecolor.texture.factor.g = basecolor_props.get("factor_g")[
+        if self.compare_float(u3m_props.texture.factor.g, shader_props.get("factor_g")[1]):
+            u3m_props.texture.factor.g = shader_props.get("factor_g")[
                 1]
             self.modified = True
-        if self.compare_float(u3m_side_dict.basecolor.texture.factor.r, basecolor_props.get("factor_r")[1]):
-            u3m_side_dict.basecolor.texture.factor.r = basecolor_props.get("factor_r")[
+        if self.compare_float(u3m_props.texture.factor.r, shader_props.get("factor_r")[1]):
+            u3m_props.texture.factor.r = shader_props.get("factor_r")[
                 1]
             self.modified = True
 

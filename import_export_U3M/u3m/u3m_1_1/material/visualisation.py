@@ -343,6 +343,9 @@ class TextureAndColor:
             [U3M.from_none, lambda x: U3M.to_class(ColorTexture, x)], self.texture)
         return result
 
+    def remove_texture(self):
+        self.texture = None
+
 
 @dataclass
 class Constant:

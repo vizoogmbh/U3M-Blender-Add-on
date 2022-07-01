@@ -49,7 +49,7 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
     use_linked_mat: BoolProperty(
         name="Link materials",
         description="Apply the material to the selected object and all other objects with the same material",
-        default=True,
+        default=False,
     )
 
     auto_scale: BoolProperty(
@@ -77,8 +77,7 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
         use_linked_mat = self.as_keywords()['use_linked_mat']
         auto_scale = self.as_keywords()['auto_scale']
         error_handling = self.as_keywords()['error_handling']
-        if "U3M" not in bpy.data.scenes:
-            print("Loading U3M Scene...")
+        if "U3M" not in bpy.data.workspaces:
             bpy.ops.myops.u3m_init()
         importer = U3MImporter(filepath, use_linked_mat,
                                auto_scale, error_handling)

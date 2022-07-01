@@ -21,7 +21,7 @@ class UUID4:
             val = UUID(uuid_string)
         except Exception:
             return False
-        return val.hex == uuid_string.replace('-', '').replace('{', '').replace('}', '')
+        return val.hex == uuid_string.replace('-', '').replace('{', '').replace('}', '').lower()
 
     def create_new_uuid4(self):
         self.id = str(uuid.uuid4())
