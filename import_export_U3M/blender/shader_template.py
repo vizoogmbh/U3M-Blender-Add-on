@@ -328,9 +328,9 @@ u3m_pbr = {"sides": {
         "type": "texture_and_color",
         "editor_level": 1,
         "properties": {
-            "constant_r": ["/constant/r", 0.5, "Principled BSDF", "inputs['Subsurface Color'].default_value[0]"],
-            "constant_g": ["/constant/g", 0.5, "Principled BSDF", "inputs['Subsurface Color'].default_value[1]"],
-            "constant_b": ["/constant/b", 0.5, "Principled BSDF", "inputs['Subsurface Color'].default_value[2]"],
+            "constant_r": ["/constant/r", 1.0, "Principled BSDF", "inputs['Subsurface Color'].default_value[0]"],
+            "constant_g": ["/constant/g", 1.0, "Principled BSDF", "inputs['Subsurface Color'].default_value[1]"],
+            "constant_b": ["/constant/b", 1.0, "Principled BSDF", "inputs['Subsurface Color'].default_value[2]"],
             "texture": ["/texture/image/path", None, "subsurface_color", "image"],
             "factor_r": ["/texture/factor/r", 1, "subsurface_color_factor", "inputs[1].default_value[0]"],
             "factor_g": ["/texture/factor/g", 1, "subsurface_color_factor", "inputs[1].default_value[1]"],

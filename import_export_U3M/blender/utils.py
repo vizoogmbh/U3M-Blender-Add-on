@@ -1,9 +1,7 @@
 import os
-from pathlib import Path
 import bpy
 import math
-import sys
-import subprocess
+from pathlib import Path
 
 
 class DictQuery(dict):
@@ -30,12 +28,8 @@ def get(str_val):
     return val
 
 
-def append_item(item="Material", name="U3M"):
+def append_item(item="WorkSpace", name="U3M"):
     dir_path = Path(__file__).parents[0]  # get path of this file
-    if item == "Material":
-        scene_mats = bpy.data.materials
-        if name in scene_mats:
-            return False
     if item == "Collection":
         scene_collections = bpy.data.collections
         if name in scene_collections:
@@ -45,18 +39,7 @@ def append_item(item="Material", name="U3M"):
         if name in scene_workspaces:
             return False
     bpy.ops.wm.append(directory=str(
-        dir_path / "source/U3M.blend" / item), filename=name)
-
-
-def append_u3m_shader():
-    scene_mats = bpy.data.materials
-    if "U3M" in scene_mats:
-        return False
-    else:
-        dir_path = Path(__file__).parents[0]  # get path of this file
-        bpy.ops.wm.append(directory=str(
-            dir_path / "source/U3M.blend/Material/"), filename="U3M")
-        return True
+        dir_path / "source/preview_scene.blend" / item), filename=name)
 
 
 def get_active_obj():
@@ -281,10 +264,6 @@ def remove_scene(scene):
 
 def get_current_object():
     return bpy.context.object
-
-
-def new_temp_scene():
-    return bpy.data.scenes.new("TEMP")
 
 
 def remove_texture(node_group, node_name):

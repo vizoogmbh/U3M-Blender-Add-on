@@ -26,10 +26,7 @@ class RenderPreviewBase(object):
 
 def u3m_init():
     current_obj = Blender.get_current_object()
-    # workaround for append scene bug (scene content being randomly dumped in active scene)
-    temp_scene = Blender.new_temp_scene()
     Blender.append_item("Scene", "U3M")
-    Blender.remove_scene(temp_scene)  # workaround step 2
     Blender.append_item("WorkSpace", "U3M")
     if "U3M" in Blender.get_workspaces():
         Blender.open_u3m_workspace()
