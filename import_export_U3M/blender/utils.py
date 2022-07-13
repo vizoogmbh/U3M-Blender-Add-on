@@ -314,6 +314,14 @@ def load_image(filepath, error_handler):
         return bpy.data.images.load(filepath)
 
 
+def set_material_blend_method(material, subsurface_value_props):
+    if subsurface_value_props["constant"][1] > 0 or subsurface_value_props["texture"][1] != None:
+        blend_method = "OPAQUE"
+    else:
+        blend_method = "HASHED"
+    material.blend_method = blend_method
+
+
 def execute(str):
     exec(str)
 
