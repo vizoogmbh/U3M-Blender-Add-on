@@ -71,7 +71,7 @@ def build_shader_group(texture_nodes):
         texture_node.location = (x_location, y_location)
         shader_group.links.new(
             global_size_node.outputs[0], texture_node.inputs[0])
-        if property not in ["basecolor", "subsurface_radius", "subsurface_color", "normal", "clearcoat_normal","displacement"]:
+        if property not in ["basecolor", "subsurface_radius", "subsurface_color", "normal", "clearcoat_normal", "displacement"]:
             factor_node = shader_group.nodes.new('ShaderNodeMath')
             factor_node.label = "{}_factor".format(property)
             factor_node.name = "{}_factor".format(property)
@@ -110,7 +110,8 @@ def build_shader_group(texture_nodes):
             offset_node.label = "{}_offset".format(property)
             offset_node.name = "{}_offset".format(property)
             offset_node.location = (x_location + 800, y_location)
-            displacement_node = shader_group.nodes.new('ShaderNodeDisplacement')
+            displacement_node = shader_group.nodes.new(
+                'ShaderNodeDisplacement')
             displacement_node.location = (x_location + 900, y_location)
             shader_group.outputs.new('NodeSocketVector', property)
             shader_group.links.new(
@@ -130,7 +131,7 @@ def build_shader_group(texture_nodes):
     return shader_group
 
 
-def build_shader(material, enable_displacement = False):
+def build_shader(material, enable_displacement=False):
     texture_nodes = []
     aliases = []
     viz_dict = shader_template.u3m_pbr["visualization"]
@@ -189,7 +190,8 @@ def build_shader(material, enable_displacement = False):
                           principled.inputs[aliases[texture_nodes.index(socket)]])
             else:
                 if group == front_group_node and enable_displacement:
-                    links.new(group.outputs[socket],material_out_node.inputs[2])
+                    links.new(group.outputs[socket],
+                              material_out_node.inputs[2])
     links.new(principled_front_node.outputs["BSDF"], shader_mix_node.inputs[1])
     links.new(principled_back_node.outputs["BSDF"], shader_mix_node.inputs[2])
     links.new(geometry_node.outputs["Backfacing"],
@@ -258,6 +260,8 @@ def apply_u3m(viz_dict, side, error_handler):
     blender_obj = Blender.get_active_obj()
     print("Apply to active material: ", blender_obj.active_material)
     active_material = blender_obj.active_material
+    Blender.set_material_blend_method(
+        active_material, viz_dict["subsurface_value"]["properties"])
     active_material_tree = active_material.node_tree.nodes
     node = "U3M_" + side
     for param, param_dict in viz_dict.items():       # e.g. "alpha"
