@@ -38,7 +38,7 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
     bl_idname = "import_scene.u3m"
     bl_label = "Import U3M"
     bl_options = {'PRESET', 'UNDO'}
-
+    bl_description = "Load a U3M file"
     filename_ext = ".u3m"
 
     filter_glob: StringProperty(
@@ -99,7 +99,7 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
 class ExportU3M(bpy.types.Operator, ExportHelper):
     bl_idname = "export_scene.u3m"
     bl_label = "U3M Export"
-
+    bl_description = "Export a U3M file"
     filename_ext = ".u3m"
 
     create_preview: BoolProperty(
@@ -145,6 +145,7 @@ class ExportU3M(bpy.types.Operator, ExportHelper):
 class U3MScaleOperator(bpy.types.Operator):
     bl_idname = "object.u3m_scale_operator"
     bl_label = "U3M Calculate UVs Operator"
+    bl_description = "Scale the material to physical size"
     bpy.types.Scene.u3m_width = bpy.props.FloatProperty(
         name="Width (mm/repeat)", description="texture width", default=0)
     bpy.types.Scene.u3m_height = bpy.props.FloatProperty(
@@ -303,18 +304,21 @@ class ViewOperator(bpy.types.Operator, ViewOperatorBase):
 class AddSideOperator(bpy.types.Operator, AddSideOperatorBase):
     bl_idname = "myops.u3m_add_side"
     bl_label = "Add Side"
+    bl_description = "Add Side to Material"
     id: bpy.props.IntProperty()
 
 
 class RemoveSideOperator(bpy.types.Operator, RemoveSideOperatorBase):
     bl_idname = "myops.u3m_remove_side"
     bl_label = "Remove Side"
+    bl_description = "Remove Side from Material"
     id: bpy.props.IntProperty()
 
 
 class RenderPreview(bpy.types.Operator, RenderPreviewBase):
     bl_idname = "myops.u3m_render_preview"
     bl_label = "U3M Render Preview"
+    bl_description = "Render a Preview"
 
 
 class LoadTextureOperator(bpy.types.Operator, ImportHelper):

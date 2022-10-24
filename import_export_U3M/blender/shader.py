@@ -260,8 +260,8 @@ def apply_u3m(viz_dict, side, error_handler):
     blender_obj = Blender.get_active_obj()
     print("Apply to active material: ", blender_obj.active_material)
     active_material = blender_obj.active_material
-    Blender.set_material_blend_method(
-        active_material, viz_dict["subsurface_value"]["properties"])
+    Blender.set_material_blend_method(active_material, "HASHED")
+    Blender.set_material_shadow_method(active_material, "HASHED")
     active_material_tree = active_material.node_tree.nodes
     node = "U3M_" + side
     for param, param_dict in viz_dict.items():       # e.g. "alpha"
