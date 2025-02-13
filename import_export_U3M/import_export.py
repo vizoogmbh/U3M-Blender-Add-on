@@ -12,15 +12,15 @@ from import_export_U3M.blender import shader as Shader
 
 class U3MImporter:
 
-    def __init__(self, filepath, use_linked_mat, auto_scale, error_handling):
+    def __init__(self, filepath, assignment_mode , auto_scale, error_handling):
         self.error_handler = U3MErrorHandler(error_handling)
         self.parser = U3MParser()
         self.u3m_dir = filepath.parents[0]
         self.u3m_obj = self.parser.load_u3m_from_path(
             filepath, self.error_handler)
-        self.use_linked_mat = use_linked_mat
+        self.assignment_mode = assignment_mode
         self.auto_scale = auto_scale
-
+    
     def import_u3m(self):
         if self.u3m_obj is not None:
             self.prepare_material()
@@ -33,7 +33,7 @@ class U3MImporter:
 
     def prepare_material(self):
         material_name = self.u3m_obj.get_material().get_name()
-        Shader.assign_material(material_name, self.use_linked_mat)
+        Shader.assign_material(material_name, self.assignment_mode)
 
     def write_metadata_text(self):
         name = self.u3m_obj.get_material().get_name()
@@ -132,8 +132,12 @@ class U3MExporter:
                 # check if whole side was removed
                 elif Shader.has_side(side) == False and u3m_obj.get_material().has_side(side) == True:
                     u3m_obj.get_material().remove_side(side)
-            # setting preview and icon to "None" before trying to create or copy preview and icon
-            self.clear_preview_and_icon_entries(u3m_obj.get_custom())
+            # physics
+            if u3m_obj.get_schema() == "1.1":
+                self.copy_physics_file(new_material_folder, u3m_obj.get_material().physics.devices.fab)
+            # preview
+            if u3m_obj.get_schema() == "1.0":
+                self.clear_preview_and_icon_entries(u3m_obj.get_custom())
             self.parser.write_u3m(u3m_obj, os.path.join(
                 new_material_folder, new_material_name + ".u3m"), self.error_handler)
             if create_preview:
@@ -147,6 +151,14 @@ class U3MExporter:
         else:
             self.error_handler('writing_failed')
 
+    def copy_physics_file(self, new_material_folder, physics_file):
+        u3m_dir = Blender.get_u3m_dir()
+        physics_src = os.path.join(u3m_dir, physics_file)
+        physics_dst = os.path.join(new_material_folder, physics_file)
+        if physics_src == physics_dst:
+            return
+        copyfile(physics_src, physics_dst)
+
     def clear_preview_and_icon_entries(self, custom_dict):
         try:
             vizoo_section = custom_dict.get("Vizoo")
@@ -159,27 +171,43 @@ class U3MExporter:
             print("U3M_Exporter.clear_preview_and_icon_entries(): Could not clear!")
 
     def update_preview_and_icon_entries(self, material_folder, material_name):
-        try:
-            u3m_file = os.path.join(material_folder, material_name + ".u3m")
-            preview_file = os.path.join(
-                material_folder, material_name + ".png")
-            icon_file = os.path.join(material_folder, "icon.ico")
-            if os.path.exists(u3m_file) == False or os.path.exists(preview_file) == False or os.path.exists(icon_file) == False:
-                raise OSError
-            u3m_dict = json.loads(open(u3m_file, 'r').read())
+        u3m_file = os.path.join(material_folder, material_name + ".u3m")
+        preview_file = os.path.join(
+            material_folder, material_name + ".png")
+        icon_file = os.path.join(material_folder, "icon.ico")
+        if os.path.exists(u3m_file) == False or os.path.exists(preview_file) == False or os.path.exists(icon_file) == False:
+            return False
+        with open(u3m_file, 'r') as file:
+            u3m_dict = json.load(file)
+        updated = False
+        if u3m_dict.get("schema") == "1.1":
+            material = u3m_dict.get("material")
+            if material.get("front") is not None:
+                preview_entry = material.get("front").get("preview")
+                preview_entry.update({
+                    "path": os.path.basename(preview_file),
+                    "height": 500,
+                    "width": 500,
+                    'dpi': {
+                        'x': 127.0,
+                        'y': 127.0
+                    }
+                })
+                updated = True
+        elif u3m_dict.get("schema") == "1.0":
             vizoo_section = u3m_dict.get("custom").get("Vizoo")
             if vizoo_section == None:
                 vizoo_section = u3m_dict.get("custom").get("vizoo")
             if vizoo_section == None:
-                raise Exception("couldnt find vizoo custom section")
+                return False
             vizoo_section.update({"preview": os.path.basename(
                 preview_file), "icon": os.path.basename(icon_file)})
+            updated = True
+        if updated:
             with open(u3m_file, "w") as outfile:
                 json.dump(u3m_dict, outfile, indent=4, sort_keys=True)
             return True
-        except Exception:
-            print("U3M_Exporter.update_preview_and_icon_entries(): Could not update!")
-            return False
+        return False
 
     def copy_preview_and_icon(self, new_material_folder, new_material_name):
         try:
@@ -239,7 +267,7 @@ class U3MExporter:
         if u3m_material.has_side(side):
             u3m_side_dict = u3m_obj.get_material().get_side(side)
         else:
-            u3m_obj.get_material().add_side(side)
+            u3m_obj.get_material().add_side(side, self.error_handler)
             u3m_side_dict = u3m_obj.get_material().get_side(side)
         for viz_prop in shader_side_dict:
             if shader_side_dict.get(viz_prop).get("type") == "texture_and_number":
@@ -262,6 +290,8 @@ class U3MExporter:
             u3m_props = u3m_side_dict.get(viz_prop)
             shader_props = shader_side_dict.get(viz_prop).get("properties")
             self.compare_and_update_constant(viz_prop, u3m_props, shader_props)
+            if shader_side_dict.get(viz_prop).get("editor_level") != 0:
+                return
             # check if original file and shader have a texture
             if u3m_props.texture != "null" and shader_props.get("texture")[1] != None:
                 self.compare_and_update_texture_factor(
@@ -292,6 +322,8 @@ class U3MExporter:
             self.modified = True
 
     def compare_and_update_texture_factor(self, viz_prop, u3m_version, u3m_props, shader_props):
+        if viz_prop == "displacement":
+            return
         if viz_prop == "normal" and u3m_version == "1.1":
             # U3M 1.1 Normal doesnt have factor, but scale
             u3m_props.texture.scale = shader_props.get("factor")[1]
@@ -320,22 +352,18 @@ class U3MExporter:
             self.compare_and_update_bgr_constants(
                 u3m_props, shader_props)
             # check if original file and shader have a texture
-            if u3m_side_dict.basecolor.texture != "null" and shader_props.get("texture")[1] != None:
+            if u3m_side_dict.basecolor.texture != None and shader_props.get("texture")[1] != None:
                 self.compare_and_update_bgr_factors(
                     u3m_props, shader_props)
                 self.compare_and_update_texture_path(
                     u3m_side_dict.basecolor, shader_props)
             # check if texture was added in editor
-            elif u3m_props.texture != "null" and shader_props.get("texture")[1] != None:
-                u3m_props.add_texture()
-                u3m_props.texture.factor.b = shader_props.get("factor_b")[
-                    1]
-                u3m_props.texture.factor.g = shader_props.get("factor_g")[
-                    1]
-                u3m_props.texture.factor.r = shader_props.get("factor_r")[
-                    1]
-                u3m_props.texture.image.path.set_path(
-                    shader_props.get("texture")[1], self.error_handler)
+            elif u3m_props.texture == None and shader_props.get("texture")[1] != None:
+                u3m_props.add_texture(self.error_handler)
+                u3m_props.texture.factor.b = shader_props.get("factor_b")[1]
+                u3m_props.texture.factor.g = shader_props.get("factor_g")[1]
+                u3m_props.texture.factor.r = shader_props.get("factor_r")[1]
+                u3m_props.texture.image.path.set_path(shader_props.get("texture")[1], self.error_handler)
                 self.modified = True
             # check if texture was removed in editor
             elif u3m_props.texture != "null" and shader_props.get("texture")[1] == None:

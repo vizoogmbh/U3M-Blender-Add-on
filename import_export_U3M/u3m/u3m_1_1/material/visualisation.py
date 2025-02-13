@@ -343,6 +343,31 @@ class TextureAndColor:
             [U3M.from_none, lambda x: U3M.to_class(ColorTexture, x)], self.texture)
         return result
 
+    def add_texture(self, error_handler):
+        template = {
+            "factor": {
+                "b": 1,
+                "g": 1,
+                "r": 1
+            },
+            "image": {
+                "dpi": {
+                    "x": 1,
+                    "y": 1
+                },
+                "height": 1,
+                "path": "none",
+                "repeat": {
+                    "mode": "normal",
+                    "rotation": 0
+                },
+                "width": 1
+            },
+            "mode": "multiply"
+        }
+
+        self.texture = ColorTexture.from_dict(template, error_handler)
+
     def remove_texture(self):
         self.texture = None
 

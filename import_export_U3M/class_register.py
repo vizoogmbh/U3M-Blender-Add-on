@@ -16,6 +16,7 @@ from .blender.blender_classes import (
     ViewOperator,
     AddSideOperator,
     RemoveSideOperator,
+    ToggleAlphaOperator,
     InitOperator,
     LoadTextureOperator,
     RemoveTextureOperator,
@@ -35,6 +36,11 @@ bpy.types.Scene.u3m_scale_y = bpy.props.FloatProperty(
 bpy.types.Scene.u3m_size = bpy.props.FloatProperty(
     update=set_scale, name="Size (%)", description="material size (scaling factor) in percent", min=0.001, max=10000.0, default=100.00)
 
+bpy.types.Scene.u3m_alpha_enabled = bpy.props.BoolProperty(
+        name="Enable Alpha",
+        description="Enable or disable alpha channel for U3M materials",
+        default=True
+    )
 
 def menu_func_import(self, context):
     self.layout.operator(ImportU3M.bl_idname,
@@ -61,6 +67,7 @@ classes = (
     ViewOperator,
     AddSideOperator,
     RemoveSideOperator,
+    ToggleAlphaOperator, 
     InitOperator,
     LoadTextureOperator,
     RemoveTextureOperator,
