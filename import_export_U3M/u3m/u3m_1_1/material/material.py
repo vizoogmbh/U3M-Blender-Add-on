@@ -129,19 +129,114 @@ class Material:
         else:
             pass
 
-    def add_side(self, side):
-        template = None
+    def add_side(self, side, error_handler):
+        template = {
+            "alpha": {
+                "constant": 1,
+                "texture": None
+            },
+            "anisotropy_value": {
+                "constant": 0,
+                "texture": None
+            },
+            "anisotropy_rotation": {
+                "constant": 0,
+                "texture": None
+            },
+            "clearcoat_value": {
+                "constant": 0,
+                "texture": None
+            },
+            "clearcoat_normal": {
+                "constant": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "texture": None
+            },
+            "clearcoat_roughness": {
+                "constant": 0,
+                "texture": None
+            },
+            "ior": {
+                "constant": 1.4,
+                "texture": None
+            },
+            "metalness": {
+                "constant": 0,
+                "texture": None
+            },
+            "normal": {
+                "constant": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0.5
+                },
+                "texture": None
+            },
+            "displacement": {
+                "constant": 0,
+                "texture": None
+            },
+            "roughness": {
+                "constant": 0.7,
+                "texture": None
+            },
+            "sheen_value": {
+                "constant": 0,
+                "texture": None
+            },
+            "sheen_tint": {
+                "constant": 0,
+                "texture": None
+            },
+            "specular_value": {
+                "constant": 0.5,
+                "texture": None
+            },
+            "specular_tint": {
+                "constant": 0,
+                "texture": None
+            },
+            "subsurface_radius": {
+                "constant": 0,
+                "texture": None
+            },
+            "subsurface_value": {
+                "constant": 0,
+                "texture": None
+            },
+            "transmission": {
+                "constant": 0,
+                "texture": None
+            },
+            "basecolor": {
+                "constant": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1
+                },
+                "texture": None
+            },
+            "subsurface_color": {
+                "constant": {
+                    "r": 1,
+                    "g": 1,
+                    "b": 1
+                },
+                "texture": None
+            },
+            "shader": "principled",
+            "preview": None
+        }
+        
         if side == "front":
-            self.front = U3M.from_union(
-                [U3M.from_none, Visualisation.from_dict], template)
+            self.front = Visualisation.from_dict(template, error_handler)
         elif side == "back":
-            self.back = U3M.from_union(
-                [U3M.from_none, Visualisation.from_dict], template)
+            self.back = Visualisation.from_dict(template, error_handler)
         elif side == "side":
-            self.side = U3M.from_union(
-                [U3M.from_none, Visualisation.from_dict], template)
-        else:
-            pass
+            self.side = Visualisation.from_dict(template, error_handler)
 
     def set_created(self):
         self.created.set_date()
@@ -205,9 +300,9 @@ class Material:
 
     def has_side(self, side) -> bool:
         if side == "front":
-            return self.has_front
+            return self.has_front()
         elif side == "back":
-            return self.has_back
+            return self.has_back()
         else:
             return False
 

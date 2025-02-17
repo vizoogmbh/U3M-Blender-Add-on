@@ -293,6 +293,8 @@ def get_texts():
 def get_objects():
     return bpy.data.objects
 
+def get_selected_objects():
+    return bpy.context.selected_objects
 
 def get_node_groups():
     return bpy.data.node_groups
@@ -344,7 +346,7 @@ def remove_side_links(obj, side):
     active_material = obj.active_material
     tree = active_material.node_tree
     tree.links.remove(
-        tree.nodes["Principled BSDF_"+side].outputs["BSDF"].links[0])
+        tree.nodes["Principled_BSDF_"+side].outputs["BSDF"].links[0])
     try:        # when the function is called from editor, there is no backfacing link
         tree.links.remove(
             tree.nodes["Geometry"].outputs["Backfacing"].links[0])
@@ -355,10 +357,10 @@ def remove_side_links(obj, side):
     if side == "front":
         tree.nodes["Mix_Front_Back"].inputs['Fac'].default_value = 1
     # remove all inputs of Principled BSDF
-    for i in tree.nodes["Principled BSDF_"+side].inputs:
+    for i in tree.nodes["Principled_BSDF_"+side].inputs:
         try:  # there can be inputs w/o link
             tree.links.remove(
-                tree.nodes["Principled BSDF_"+side].inputs[i.name].links[0])
+                tree.nodes["Principled_BSDF_"+side].inputs[i.name].links[0])
         except:
             pass
 

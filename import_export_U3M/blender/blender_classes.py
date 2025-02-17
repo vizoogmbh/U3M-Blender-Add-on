@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import utils
 from import_export_U3M.import_export import U3MImporter, U3MExporter
-from import_export_U3M.blender import shader_template
+from import_export_U3M.blender.shader import MaterialAssignmentMode
 from import_export_U3M import editor
 
 from import_export_U3M.editor import (
@@ -22,7 +22,8 @@ from import_export_U3M.editor import (
     U3MEditPanelBackBase,
     U3MEditPanelBackAdvancedBase,
     AddSideOperatorBase,
-    RemoveSideOperatorBase
+    RemoveSideOperatorBase,
+    ToggleAlphaOperatorBase
 )
 
 from import_export_U3M.views import (
@@ -52,6 +53,12 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
         default=False,
     )
 
+    apply_to_selection: BoolProperty(
+        name="Apply to selection",
+        description="Apply the material to all selected objects",
+        default=False,
+    )
+
     auto_scale: BoolProperty(
         name="Auto scale",
         description="Automatically scale the material",
@@ -65,7 +72,7 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
             ('STRICT', 'strict', 'strict error handling mode'),
             ('RELAXED', 'relaxed', 'relaxed error handling mode'),
             ('USER', 'user', 'user error handling mode')},
-        default='USER'
+        default='RELAXED'
     )
 
     @classmethod
@@ -74,13 +81,16 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         filepath = Path(self.as_keywords()['filepath'])
-        use_linked_mat = self.as_keywords()['use_linked_mat']
+        assignment_mode = (
+            MaterialAssignmentMode.LINKED if self.as_keywords()['use_linked_mat'] 
+            else MaterialAssignmentMode.SELECTION if self.as_keywords()['apply_to_selection'] 
+            else MaterialAssignmentMode.ACTIVE_ONLY
+        )
         auto_scale = self.as_keywords()['auto_scale']
         error_handling = self.as_keywords()['error_handling']
         if "U3M" not in bpy.data.workspaces:
             bpy.ops.myops.u3m_init()
-        importer = U3MImporter(filepath, use_linked_mat,
-                               auto_scale, error_handling)
+        importer = U3MImporter(filepath, assignment_mode, auto_scale, error_handling)
         importer.import_u3m()
         return {'FINISHED'}
 
@@ -92,6 +102,8 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
         layout = self.layout
         row = layout.row(align=True)
         row.prop(self, "use_linked_mat")
+        row = layout.row(align=True)
+        row.prop(self, "apply_to_selection")
         row = layout.row(align=True)
         row.prop(self, "auto_scale")
 
@@ -120,7 +132,7 @@ class ExportU3M(bpy.types.Operator, ExportHelper):
             ('STRICT', 'strict', 'strict error handling mode'),
             ('RELAXED', 'relaxed', 'relaxed error handling mode'),
             ('USER', 'user', 'user error handling mode')},
-        default='USER'
+        default='RELAXED'
     )
 
     @classmethod
@@ -156,14 +168,7 @@ class U3MScaleOperator(bpy.types.Operator):
         utils.set_u3m_scale(error_handler)
 
     def set(self, context, obj, scale_x, scale_y, size):
-        global_scale_x = 1/scale_x*(size/100)
-        global_scale_y = 1/scale_y*(size/100)
-        for side in shader_template.u3m_pbr["sides"]:
-            try:
-                obj.active_material.node_tree.nodes["U3M_" +
-                                                    side].node_tree.nodes["global_size"].inputs['Scale'].default_value = global_scale_x, global_scale_y, 1
-            except:
-                pass
+        obj.active_material.node_tree.nodes["global_size"].inputs['Scale'].default_value = 1/scale_x*(size/100), 1/scale_y*(size/100), 1
 
     def execute(self, context):
         self.scale(context)
@@ -312,6 +317,12 @@ class RemoveSideOperator(bpy.types.Operator, RemoveSideOperatorBase):
     bl_idname = "myops.u3m_remove_side"
     bl_label = "Remove Side"
     bl_description = "Remove Side from Material"
+    id: bpy.props.IntProperty()
+
+class ToggleAlphaOperator(bpy.types.Operator, ToggleAlphaOperatorBase):
+    bl_idname = "myops.u3m_toggle_alpha"
+    bl_label = "Toggle Alpha"
+    bl_description = "Toggle Alpha for current U3M"
     id: bpy.props.IntProperty()
 
 
