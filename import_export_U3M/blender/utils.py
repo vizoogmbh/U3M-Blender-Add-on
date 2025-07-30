@@ -320,15 +320,17 @@ def set_material_blend_method(material, blend_method):
     material.blend_method = blend_method
 
 
-def set_material_shadow_method(material, shadow_method):
-    material.shadow_method = shadow_method
-
+def set_material_shadow_method(material, shadow_method) -> bool:
+    if hasattr(material, "shadow_method"): 
+        material.shadow_method = shadow_method
+        return True
+    return False
 
 def execute(str):
     exec(str)
 
 
-def apply_image(img_path, node_tree, subnode, param_dict, error_handler):
+def apply_image(img_path, node_tree, subnode, error_handler):
     sn = node_tree.nodes[subnode]
     img = None
     for used_img in get_images():

@@ -2,8 +2,8 @@ from . import class_register
 bl_info = {
     "name": "Unified 3D Material (U3M) format",
     "author": "vizoo3d.com",
-    "version": (1, 2, 0),
-    "blender": (4, 2, 0),
+    "version": (1, 2, 1),
+    "blender": (4, 5, 0),
     "location": "File > Import-Export",
     "description": "Import-Export U3M",
     "warning": "",

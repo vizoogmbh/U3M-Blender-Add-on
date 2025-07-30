@@ -133,7 +133,7 @@ class U3MExporter:
                 elif Shader.has_side(side) == False and u3m_obj.get_material().has_side(side) == True:
                     u3m_obj.get_material().remove_side(side)
             # physics
-            if u3m_obj.get_schema() == "1.1":
+            if u3m_obj.get_schema() == "1.1" and u3m_obj.get_material().physics != None:
                 self.copy_physics_file(new_material_folder, u3m_obj.get_material().physics.devices.fab)
             # preview
             if u3m_obj.get_schema() == "1.0":
@@ -244,22 +244,19 @@ class U3MExporter:
 
     def set_material_folder_icon(self, new_material_folder):
         icon_path = os.path.join(new_material_folder, "icon.ico")
-        attrib_exe = os.path.join(os.environ.get(
-            'WINDIR'), "System32", "attrib.exe")
-        if os.path.exists(attrib_exe) == False or os.path.exists(icon_path) == False:
-            raise OSError
-        else:
-            subprocess.Popen([attrib_exe, "+s", new_material_folder],
-                             cwd=os.path.dirname(new_material_folder))
-        with open(os.path.join(new_material_folder, "desktop.ini"), "w") as desktop_ini:
+        desktop_ini_path = os.path.join(new_material_folder, "desktop.ini")
+        attrib_exe = os.path.join(os.environ.get('WINDIR'), "System32", "attrib.exe")
+        if os.path.exists(desktop_ini_path):
+            subprocess.run([attrib_exe, "-s", "-h", "-r", "desktop.ini"], cwd=new_material_folder)
+        with open(desktop_ini_path, "w") as desktop_ini:
             desktop_ini.write("[.ShellClassInfo]\n")
-            desktop_ini.write("IconResource=" + icon_path + ",0\n")
+            desktop_ini.write(f"IconResource={icon_path},0\n")
             desktop_ini.write("[ViewState]\n")
             desktop_ini.write("Mode=\n")
             desktop_ini.write("Vid=\n")
             desktop_ini.write("FolderType=Pictures\n")
-        subprocess.Popen(
-            [attrib_exe, "+s", "+h", "desktop.ini"], cwd=new_material_folder)
+        subprocess.run([attrib_exe, "+s", new_material_folder], cwd=os.path.dirname(new_material_folder))
+        subprocess.run([attrib_exe, "+s", "+h", "desktop.ini"], cwd=new_material_folder)
 
     # compare and update all editable u3m values
     def compare_and_update_u3m_values(self, new_material_name, u3m_obj, side, shader_side_dict):
