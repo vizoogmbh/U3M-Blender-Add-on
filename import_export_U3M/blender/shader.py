@@ -91,7 +91,9 @@ def apply_u3m(viz_dict, side, error_handler):
     blender_obj = Blender.get_active_obj()
     active_material = blender_obj.active_material
     Blender.set_material_blend_method(active_material, "HASHED")
-    Blender.set_material_shadow_method(active_material, "HASHED")
+    if not (Blender.set_material_shadow_method(active_material, "HASHED")):
+        if hasattr(blender_obj, "visible_shadow"):
+            blender_obj.visible_shadow = True
     builder = ShaderNodeBuilder(viz_dict, side)
     builder.build_shader_nodes(active_material)
 
@@ -127,7 +129,7 @@ def collect_and_copy_u3m_data(side, new_material_folder, new_material_name):
                     new_material_folder, "textures", new_texture_name)
                 os.makedirs(os.path.dirname(texture_path_dst), exist_ok=True)
 
-                if texture_path != texture_path_dst:
+                if os.path.normcase(os.path.abspath(texture_path)) != os.path.normcase(os.path.abspath(texture_path_dst)):
                     copyfile(texture_path, texture_path_dst)
 
                 img.name, img.filepath = new_texture_name, texture_path_dst

@@ -149,9 +149,8 @@ def render_edit_subpanel(self, context, side, level):
 
 def add_texture(context, node_group, side, node_name, img_path):
     node_tree = context.object.active_material.node_tree
-    param_dict = shader_template.u3m_pbr["visualization"][node_name]
     u3m_node_tree = node_tree.nodes["U3M_"+side].node_tree
-    utils.apply_image(img_path, u3m_node_tree, node_name, param_dict, None)
+    utils.apply_image(img_path, u3m_node_tree, node_name, None)
     if node_name in ["basecolor", "normal"]:
         input_node = u3m_node_tree.nodes[node_name + "_factor"].outputs[0]
     elif node_name in ["metalness", "roughness", "alpha"]:
