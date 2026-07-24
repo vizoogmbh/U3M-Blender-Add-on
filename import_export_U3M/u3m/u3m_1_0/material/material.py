@@ -1,10 +1,9 @@
-from enum import Enum
 from dataclasses import dataclass
 from typing import Any, Optional
 import uuid
 from uuid import UUID
 from datetime import datetime
-from import_export_U3M.u3m import tools as U3M
+from ... import tools
 from .visualisation import Visualisation
 
 
@@ -21,7 +20,10 @@ class UUID4:
             val = UUID(uuid_string)
         except Exception:
             return False
-        return val.hex == uuid_string.replace('-', '').replace('{', '').replace('}', '').lower()
+        return (
+            val.hex
+            == uuid_string.replace("-", "").replace("{", "").replace("}", "").lower()
+        )
 
     def create_new_uuid4(self):
         self.id = str(uuid.uuid4())
@@ -70,32 +72,40 @@ class Material:
     front: Optional[Visualisation] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'Material':
+    def from_dict(obj: Any, error_handler: Any) -> "Material":
         assert isinstance(obj, dict)
-        created = Date(U3M.from_datetime(obj.get("created"), error_handler))
-        description = U3M.from_str(obj.get("description"))
-        id = UUID4(U3M.from_str(obj.get("id")), error_handler)
-        modified = Date(U3M.from_datetime(obj.get("modified"), error_handler))
-        name = MaterialName(U3M.from_str(obj.get("name")), error_handler)
-        back = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, Visualisation.from_dict], obj.get("back"), error_handler)
-        front = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, Visualisation.from_dict], obj.get("front"), error_handler)
+        created = Date(tools.from_datetime(obj.get("created"), error_handler))
+        description = tools.from_str(obj.get("description"))
+        id = UUID4(tools.from_str(obj.get("id")), error_handler)
+        modified = Date(tools.from_datetime(obj.get("modified"), error_handler))
+        name = MaterialName(tools.from_str(obj.get("name")), error_handler)
+        back = tools.from_union_with_errors(
+            [tools.from_none_with_errors, Visualisation.from_dict],
+            obj.get("back"),
+            error_handler,
+        )
+        front = tools.from_union_with_errors(
+            [tools.from_none_with_errors, Visualisation.from_dict],
+            obj.get("front"),
+            error_handler,
+        )
         return Material(created, description, id, modified, name, back, front)
 
     def to_dict(self, error_handler: Any) -> dict:
         result: dict = {}
-        result["created"] = U3M.date_parser.write(
-            self.get_created(), error_handler)
-        result["description"] = U3M.from_str(self.description)
-        result["id"] = U3M.from_str(self.id.get_id())
-        result["modified"] = U3M.date_parser.write(
-            self.modified.get_date(), error_handler)
-        result["name"] = U3M.from_str(self.name.get_name())
-        result["back"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(Visualisation, x)], self.back)
-        result["front"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(Visualisation, x)], self.front)
+        result["created"] = tools.date_parser.write(self.get_created(), error_handler)
+        result["description"] = tools.from_str(self.description)
+        result["id"] = tools.from_str(self.id.get_id())
+        result["modified"] = tools.date_parser.write(
+            self.modified.get_date(), error_handler
+        )
+        result["name"] = tools.from_str(self.name.get_name())
+        result["back"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(Visualisation, x)], self.back
+        )
+        result["front"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(Visualisation, x)], self.front
+        )
         return result
 
     def set_created(self):
@@ -105,7 +115,7 @@ class Material:
         return self.created.get_date()
 
     def get_created_as_str(self) -> str:
-        return U3M.date_parser.write(self.get_created())
+        return tools.date_parser.write(self.get_created())
 
     def update(self):
         self.set_modified()
@@ -176,98 +186,30 @@ class Material:
 
     def add_side(self, side, error_handler):
         template = {
-            "alpha": {
-                "constant": 1,
-                "texture": None
-            },
-            "anisotropy_value": {
-                "constant": 0,
-                "texture": None
-            },
-            "anisotropy_rotation": {
-                "constant": 0,
-                "texture": None
-            },
-            "clearcoat_value": {
-                "constant": 0,
-                "texture": None
-            },
-            "clearcoat_normal": {
-                "scale": 1.0,
-                "image": None
-            },
-            "clearcoat_roughness": {
-                "constant": 0,
-                "texture": None
-            },
-            "ior": {
-                "constant": 1.4,
-                "texture": None
-            },
-            "metalness": {
-                "constant": 0,
-                "texture": None
-            },
-            "normal": {
-                "scale": 1.0,
-                "image": None
-            },
-            "displacement": {
-                "constant": 0,
-                "texture": None
-            },
-            "roughness": {
-                "constant": 0.7,
-                "texture": None
-            },
-            "sheen_value": {
-                "constant": 0,
-                "texture": None
-            },
-            "sheen_tint": {
-                "constant": 0,
-                "texture": None
-            },
-            "specular_value": {
-                "constant": 0.5,
-                "texture": None
-            },
-            "specular_tint": {
-                "constant": 0,
-                "texture": None
-            },
-            "subsurface_radius": {
-                "constant": 0,
-                "texture": None
-            },
-            "subsurface_value": {
-                "constant": 0,
-                "texture": None
-            },
-            "transmission": {
-                "constant": 0,
-                "texture": None
-            },
-            "basecolor": {
-                "constant": {
-                    "r": 1,
-                    "g": 1,
-                    "b": 1
-                },
-                "texture": None
-            },
-            "subsurface_color": {
-                "constant": {
-                    "r": 1,
-                    "g": 1,
-                    "b": 1
-                },
-                "texture": None
-            },
+            "alpha": {"constant": 1, "texture": None},
+            "anisotropy_value": {"constant": 0, "texture": None},
+            "anisotropy_rotation": {"constant": 0, "texture": None},
+            "clearcoat_value": {"constant": 0, "texture": None},
+            "clearcoat_normal": {"scale": 1.0, "image": None},
+            "clearcoat_roughness": {"constant": 0, "texture": None},
+            "ior": {"constant": 1.4, "texture": None},
+            "metalness": {"constant": 0, "texture": None},
+            "normal": {"scale": 1.0, "image": None},
+            "displacement": {"constant": 0, "texture": None},
+            "roughness": {"constant": 0.7, "texture": None},
+            "sheen_value": {"constant": 0, "texture": None},
+            "sheen_tint": {"constant": 0, "texture": None},
+            "specular_value": {"constant": 0.5, "texture": None},
+            "specular_tint": {"constant": 0, "texture": None},
+            "subsurface_radius": {"constant": 0, "texture": None},
+            "subsurface_value": {"constant": 0, "texture": None},
+            "transmission": {"constant": 0, "texture": None},
+            "basecolor": {"constant": {"r": 1, "g": 1, "b": 1}, "texture": None},
+            "subsurface_color": {"constant": {"r": 1, "g": 1, "b": 1}, "texture": None},
             "shader": "principled",
-            "preview": None
+            "preview": None,
         }
-        
+
         if side == "front":
             self.front = Visualisation.from_dict(template, error_handler)
         elif side == "back":

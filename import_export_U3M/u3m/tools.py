@@ -3,8 +3,6 @@ import datetime
 from enum import Enum
 from typing import Any, Dict, TypeVar, Type, cast, Callable, List
 
-import re
-import datetime
 
 class DateParser:
 
@@ -14,14 +12,22 @@ class DateParser:
                 return None
             if self.check_str_for_zulu_offset(date_time_str):
                 try:
-                    return datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+                    return datetime.datetime.strptime(
+                        date_time_str, "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
                 except ValueError:
-                    return datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%SZ')
+                    return datetime.datetime.strptime(
+                        date_time_str, "%Y-%m-%dT%H:%M:%SZ"
+                    )
             else:
                 try:
-                    return datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%S.%f')
+                    return datetime.datetime.strptime(
+                        date_time_str, "%Y-%m-%dT%H:%M:%S.%f"
+                    )
                 except ValueError:
-                    return datetime.datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M:%S')
+                    return datetime.datetime.strptime(
+                        date_time_str, "%Y-%m-%dT%H:%M:%S"
+                    )
         except ValueError:
             error_handler.handle("wrong_date_format")
             return None
@@ -30,12 +36,10 @@ class DateParser:
             return None
 
     def write(self, date_time_obj, error_handler):
-        zulu = self.check_for_zulu_offset(date_time_obj)
         try:
-            if zulu:
+            if date_time_obj.tzinfo is None:
                 return date_time_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
-            else:
-                return date_time_obj.strftime('%Y-%m-%dT%H:%M:%S%z')
+            return date_time_obj.isoformat(timespec="seconds")
         except Exception:
             error_handler.handle("date_writing_failed")
             return None
@@ -56,7 +60,7 @@ date_parser = DateParser()
 
 class RelativeFilePath:
     def __init__(self, path_string, error_handler):
-        self.pattern = '^\(\(?!(\\.\\.|\\.|\\~|(([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[cC][lL][oO][cC][kK]\\$|[nN][uU][lL]|[cC][oO][mM][1-9]|[lL][pP][tT][1-9])(\\.[^\\/]*)?))\\)([^\\x00-\\x1F<>:\"\\/\\\\|\\$\\%]{0,254}[^\\x00-\\x1F<>:\"\\/\\\\|\\$\\%\\.\\x20|]\\))*(?!(\\.\\.|\\.|\\~|(([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[cC][lL][oO][cC][kK]\\$|[nN][uU][lL]|[cC][oO][mM][1-9]|[lL][pP][tT][1-9])(\\..*)?))$)([^\\x00-\\x1F<>:\"\\/\\\\|]{0,254}[^\\x00-\\x1F<>:\"\\/\\\\\\.\\x20|]$)$'
+        self.pattern = '^\(\(?!(\\.\\.|\\.|\\~|(([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[cC][lL][oO][cC][kK]\\$|[nN][uU][lL]|[cC][oO][mM][1-9]|[lL][pP][tT][1-9])(\\.[^\\/]*)?))\\)([^\\x00-\\x1F<>:"\\/\\\\|\\$\\%]{0,254}[^\\x00-\\x1F<>:"\\/\\\\|\\$\\%\\.\\x20|]\\))*(?!(\\.\\.|\\.|\\~|(([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[cC][lL][oO][cC][kK]\\$|[nN][uU][lL]|[cC][oO][mM][1-9]|[lL][pP][tT][1-9])(\\..*)?))$)([^\\x00-\\x1F<>:"\\/\\\\|]{0,254}[^\\x00-\\x1F<>:"\\/\\\\\\.\\x20|]$)$'
         self.set_path(path_string, error_handler)
 
     def set_path(self, path_string, error_handler):
@@ -68,7 +72,7 @@ class RelativeFilePath:
 
     def validate_path(self, path_string):
         result = re.match(self.pattern, path_string)
-        return result == None
+        return result is None
 
     def get_path(self):
         return self.path
@@ -78,9 +82,17 @@ T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
 
 
+def clamp(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
+    return max(minimum, min(maximum, value))
+
+
 def from_float(x: Any) -> float:
     assert isinstance(x, (float, int)) and not isinstance(x, bool)
     return float(x)
+
+
+def from_float_01(x: Any) -> float:
+    return clamp(from_float(x))
 
 
 def to_enum(c: Type[EnumT], x: Any) -> EnumT:

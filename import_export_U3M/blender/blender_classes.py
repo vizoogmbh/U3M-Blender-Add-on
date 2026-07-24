@@ -1,10 +1,6 @@
-
 import bpy
-from bpy.props import (
-    BoolProperty,
-    StringProperty,
-    EnumProperty
-)
+from bpy.props import BoolProperty, StringProperty
+
 from bpy_extras.io_utils import (
     ImportHelper,
     ExportHelper,
@@ -12,67 +8,53 @@ from bpy_extras.io_utils import (
 from pathlib import Path
 
 from . import utils
-from import_export_U3M.import_export import U3MImporter, U3MExporter
-from import_export_U3M.blender.shader import MaterialAssignmentMode
-from import_export_U3M import editor
+from ..import_export import U3MImporter, U3MExporter
+from .shader import MaterialAssignmentMode
+from .. import editor
 
-from import_export_U3M.editor import (
+from ..editor import (
     U3MEditPanelFrontBase,
     U3MEditPanelFrontAdvancedBase,
     U3MEditPanelBackBase,
     U3MEditPanelBackAdvancedBase,
     AddSideOperatorBase,
     RemoveSideOperatorBase,
-    ToggleAlphaOperatorBase
+    ToggleAlphaOperatorBase,
 )
 
-from import_export_U3M.views import (
-    ViewOperatorBase,
-    RenderPreviewBase,
-    InitOperatorBase
-)
+from ..views import ViewOperatorBase, RenderPreviewBase, InitOperatorBase
 
-from import_export_U3M.errors import U3MErrorHandler
+from ..errors import U3MErrorHandler
 
 
 class ImportU3M(bpy.types.Operator, ImportHelper):
     bl_idname = "import_scene.u3m"
     bl_label = "Import U3M"
-    bl_options = {'PRESET', 'UNDO'}
     bl_description = "Load a U3M file"
+    bl_options = {"PRESET", "UNDO"}
     filename_ext = ".u3m"
 
     filter_glob: StringProperty(
-        default="*.u3m;",
-        options={'HIDDEN'},
+        default="*.u3m",
+        options={"HIDDEN"},
     )
 
     use_linked_mat: BoolProperty(
-        name="Link materials",
-        description="Apply the material to the selected object and all other objects with the same material",
+        name="Link Materials",
+        description="Apply the material to the active object and all other objects with the same material",
         default=False,
     )
 
     apply_to_selection: BoolProperty(
-        name="Apply to selection",
+        name="Apply to Selection",
         description="Apply the material to all selected objects",
         default=False,
     )
 
     auto_scale: BoolProperty(
-        name="Auto scale",
+        name="Auto Scale",
         description="Automatically scale the material",
         default=True,
-    )
-
-    error_handling: EnumProperty(
-        name="Error Handling",
-        description="mode for error handling (STRICT, RELAXED, USER)",
-        items={
-            ('STRICT', 'strict', 'strict error handling mode'),
-            ('RELAXED', 'relaxed', 'relaxed error handling mode'),
-            ('USER', 'user', 'user error handling mode')},
-        default='RELAXED'
     )
 
     @classmethod
@@ -80,168 +62,192 @@ class ImportU3M(bpy.types.Operator, ImportHelper):
         return context.object is not None
 
     def execute(self, context):
-        filepath = Path(self.as_keywords()['filepath'])
+        filepath = Path(self.filepath)
+
         assignment_mode = (
-            MaterialAssignmentMode.LINKED if self.as_keywords()['use_linked_mat'] 
-            else MaterialAssignmentMode.SELECTION if self.as_keywords()['apply_to_selection'] 
-            else MaterialAssignmentMode.ACTIVE_ONLY
+            MaterialAssignmentMode.LINKED
+            if self.use_linked_mat
+            else (
+                MaterialAssignmentMode.SELECTION
+                if self.apply_to_selection
+                else MaterialAssignmentMode.ACTIVE_ONLY
+            )
         )
-        auto_scale = self.as_keywords()['auto_scale']
-        error_handling = self.as_keywords()['error_handling']
+
         if "U3M" not in bpy.data.workspaces:
             bpy.ops.myops.u3m_init()
-        importer = U3MImporter(filepath, assignment_mode, auto_scale, error_handling)
+
+        importer = U3MImporter(
+            filepath,
+            assignment_mode,
+            self.auto_scale,
+        )
         importer.import_u3m()
-        return {'FINISHED'}
+
+        return {"FINISHED"}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return {"RUNNING_MODAL"}
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row(align=True)
-        row.prop(self, "use_linked_mat")
-        row = layout.row(align=True)
-        row.prop(self, "apply_to_selection")
-        row = layout.row(align=True)
-        row.prop(self, "auto_scale")
+        layout.prop(self, "use_linked_mat")
+        layout.prop(self, "apply_to_selection")
+        layout.prop(self, "auto_scale")
 
 
 class ExportU3M(bpy.types.Operator, ExportHelper):
     bl_idname = "export_scene.u3m"
     bl_label = "U3M Export"
     bl_description = "Export a U3M file"
+
     filename_ext = ".u3m"
 
     create_preview: BoolProperty(
-        name="create preview and icon",
-        description="create a new preview and icon for this material (uncheck this to copy original preview&icon, if there is some)",
+        name="Create Preview and Icon",
+        description="Create a new preview and icon for this material. Disable this to copy the existing preview and icon if available",
         default=True,
     )
 
     filter_glob: StringProperty(
-        default="*.u3m;",
-        options={'HIDDEN'},
-    )
-
-    error_handling: EnumProperty(
-        name="Error Handling",
-        description="mode for error handling (STRICT, RELAXED, USER)",
-        items={
-            ('STRICT', 'strict', 'strict error handling mode'),
-            ('RELAXED', 'relaxed', 'relaxed error handling mode'),
-            ('USER', 'user', 'user error handling mode')},
-        default='RELAXED'
+        default="*.u3m",
+        options={"HIDDEN"},
     )
 
     @classmethod
     def poll(cls, context):
-        if context.object:
-            return len(context.selected_objects) == 1 and utils.context_is_u3m(context) is True
+        return (
+            context.object is not None
+            and len(context.selected_objects) == 1
+            and utils.context_is_u3m(context)
+        )
 
     def execute(self, context):
-        filepath = Path(self.as_keywords()['filepath'])
-        preview = self.as_keywords()['create_preview']
-        error_handling = self.as_keywords()['error_handling']
-        print("Saving... ", filepath)
-        exporter = U3MExporter(error_handling)
-        exporter.export_u3m(filepath, preview)
-        return {'FINISHED'}
+        try:
+            filepath = Path(self.filepath)
+
+            exporter = U3MExporter()
+            exporter.export_u3m(filepath, self.create_preview)
+
+            return {"FINISHED"}
+        except Exception as ex:
+            self.report({"ERROR"}, f"Failed to export U3M: {ex}")
+            return {"CANCELLED"}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return {"RUNNING_MODAL"}
 
 
 class U3MScaleOperator(bpy.types.Operator):
     bl_idname = "object.u3m_scale_operator"
-    bl_label = "U3M Calculate UVs Operator"
+    bl_label = "U3M Calculate UVs"
     bl_description = "Scale the material to physical size"
-    bpy.types.Scene.u3m_width = bpy.props.FloatProperty(
-        name="Width (mm/repeat)", description="texture width", default=0)
-    bpy.types.Scene.u3m_height = bpy.props.FloatProperty(
-        name="Height (mm/repeat)", description="texture height", default=0)
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None and utils.context_is_u3m(context)
 
     def scale(self, context):
-        error_handler = U3MErrorHandler('USER')
+        error_handler = U3MErrorHandler()
         utils.set_u3m_scale(error_handler)
 
-    def set(self, context, obj, scale_x, scale_y, size):
-        obj.active_material.node_tree.nodes["global_size"].inputs['Scale'].default_value = 1/scale_x*(size/100), 1/scale_y*(size/100), 1
+    @staticmethod
+    def apply_scale(obj, scale_x, scale_y, size):
+        obj.active_material.node_tree.nodes["global_size"].inputs[
+            "Scale"
+        ].default_value = (
+            1 / scale_x * (size / 100),
+            1 / scale_y * (size / 100),
+            1,
+        )
 
     def execute(self, context):
         self.scale(context)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class U3MEditPanel(bpy.types.Panel):
     bl_label = "U3M Editor"
     bl_idname = "SCENE_PT_U3ME"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'U3M'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "U3M"
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
 
     def draw(self, context):
-        self.layout.prop_search(
-            context.object, "active_material", bpy.data, "materials")
+        layout = self.layout
+        obj = context.object
+
+        if obj is not None:
+            layout.prop_search(
+                obj,
+                "active_material",
+                bpy.data,
+                "materials",
+            )
 
 
 class U3MEditPanelFront(bpy.types.Panel, U3MEditPanelFrontBase):
     bl_label = "Front Side"
     bl_idname = "SCENE_PT_U3MEF"
     bl_parent_id = "SCENE_PT_U3ME"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
 
 
 class U3MEditPanelFrontAdvanced(bpy.types.Panel, U3MEditPanelFrontAdvancedBase):
     bl_label = "Advanced Parameters"
     bl_idname = "SCENE_PT_U3MEFA"
     bl_parent_id = "SCENE_PT_U3MEF"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
 
 
 class U3MEditPanelBack(bpy.types.Panel, U3MEditPanelBackBase):
     bl_label = "Back Side"
     bl_idname = "SCENE_PT_U3MEB"
     bl_parent_id = "SCENE_PT_U3ME"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
 
 
 class U3MEditPanelBackAdvanced(bpy.types.Panel, U3MEditPanelBackAdvancedBase):
     bl_label = "Advanced Parameters"
     bl_idname = "SCENE_PT_U3MEBA"
     bl_parent_id = "SCENE_PT_U3MEB"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
 
 
 class U3MToolsPanel(bpy.types.Panel):
     bl_label = "U3M Tools"
     bl_idname = "SCENE_PT_U3MT"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "U3M"
 
     @classmethod
     def poll(cls, context):
-        if context.object:
-            if len(context.selected_objects) == 1:
-                if context.object.active_material:
-                    for node in context.object.active_material.node_tree.nodes:
-                        if "U3M_" in node.name:
-                            return True
-        return False
+        obj = context.object
+        return (
+            obj is not None
+            and len(context.selected_objects) == 1
+            and obj.active_material is not None
+            and obj.active_material.node_tree is not None
+            and any("U3M_" in node.name for node in obj.active_material.node_tree.nodes)
+        )
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.label(text="Scaling")
+        layout.label(text="Scaling")
         box = layout.box()
         box.label(text="Texture Measurements:")
         row = box.row()
@@ -250,11 +256,9 @@ class U3MToolsPanel(bpy.types.Panel):
         row = box.row()
         row.prop(context.scene, "u3m_height")
         row.enabled = False
-        split = layout.split()
-        col = split.column(align=True)
+        col = layout.column(align=True)
         col.prop(context.scene, "u3m_size")
-        col.operator("object.u3m_scale_operator",
-                     text="scale to physical size")
+        col.operator("object.u3m_scale_operator", text="Scale to Physical Size")
 
 
 class InitOperator(bpy.types.Operator, InitOperatorBase):
@@ -266,9 +270,9 @@ class U3MViewsPanel(bpy.types.Panel):
 
     bl_label = "U3M Views"
     bl_idname = "SCENE_PT_U3MV"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'U3M'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "U3M"
 
     @classmethod
     def poll(cls, context):
@@ -277,7 +281,6 @@ class U3MViewsPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        row = layout.row()
         split = layout.split()
         col = split.column(align=True)
         for view in bpy.data.collections["Views"].children:
@@ -303,7 +306,10 @@ class ViewOperator(bpy.types.Operator, ViewOperatorBase):
     bl_idname = "myops.u3m_view"
     bl_label = "U3M View"
 
-    view_name: StringProperty(default="Standard", options={'HIDDEN'},)
+    view_name: StringProperty(
+        default="Standard",
+        options={"HIDDEN"},
+    )
 
 
 class AddSideOperator(bpy.types.Operator, AddSideOperatorBase):
@@ -318,6 +324,7 @@ class RemoveSideOperator(bpy.types.Operator, RemoveSideOperatorBase):
     bl_label = "Remove Side"
     bl_description = "Remove Side from Material"
     id: bpy.props.IntProperty()
+
 
 class ToggleAlphaOperator(bpy.types.Operator, ToggleAlphaOperatorBase):
     bl_idname = "myops.u3m_toggle_alpha"
@@ -334,33 +341,33 @@ class RenderPreview(bpy.types.Operator, RenderPreviewBase):
 
 class LoadTextureOperator(bpy.types.Operator, ImportHelper):
     bl_idname = "myops.u3m_load_texture"
-    bl_label = "Load Texture Operator"
-    bl_description = "Opens the file dialogue to load a texture"
+    bl_label = "Load Texture"
+    bl_description = "Open a file dialog to load a texture"
+
     pnode: bpy.props.StringProperty()
 
     def execute(self, context):
-        image_path = self.as_keywords()["filepath"]
-        n = self.pnode.split("_&_")
-        node_group, side, node_name = n[0], n[1], n[2]
+        image_path = self.filepath
+        node_group, side, node_name = self.pnode.split("_&_", 2)
         editor.add_texture(context, node_group, side, node_name, image_path)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        return {"RUNNING_MODAL"}
 
 
 class RemoveTextureOperator(bpy.types.Operator):
     bl_idname = "myops.u3m_remove_texture"
     bl_label = "Remove Texture?"
-    bl_description = "Removes the texture from the shader"
+    bl_description = "Remove the texture from the shader"
+
     pnode: bpy.props.StringProperty()
 
     def execute(self, context):
-        n = self.pnode.split("_&_")
-        node_group, side, node_name = n[0], n[1], n[2]
+        node_group, side, node_name = self.pnode.split("_&_", 2)
         editor.remove_texture(context, node_group, side, node_name)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
@@ -369,20 +376,17 @@ class RemoveTextureOperator(bpy.types.Operator):
 class ErrorMessageConfirmation(bpy.types.Operator):
     bl_idname = "wm.error_confirm"
     bl_label = "U3M Error:"
-    bpy.types.Scene.error_message = bpy.props.StringProperty()
 
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
 
     def execute(self, context):
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.label(text=bpy.context.scene.error_message)
+        layout.label(text=context.scene.error_message)
