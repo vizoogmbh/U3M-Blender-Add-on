@@ -1,11 +1,8 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import Any, Optional, Dict
-import uuid
-from uuid import UUID
-from datetime import datetime
-from import_export_U3M.u3m import tools as U3M
-from import_export_U3M.u3m.tools import RelativeFilePath
+from typing import Any, Optional
+from ... import tools
+from ...tools import RelativeFilePath
 
 
 @dataclass
@@ -14,16 +11,16 @@ class ImageDPI:
     y: float
 
     @staticmethod
-    def from_dict(obj: Any) -> 'ImageDPI':
+    def from_dict(obj: Any) -> "ImageDPI":
         assert isinstance(obj, dict)
-        x = U3M.from_float(obj.get("x"))
-        y = U3M.from_float(obj.get("y"))
+        x = tools.from_float(obj.get("x"))
+        y = tools.from_float(obj.get("y"))
         return ImageDPI(x, y)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["x"] = U3M.to_float(self.x)
-        result["y"] = U3M.to_float(self.y)
+        result["x"] = tools.to_float(self.x)
+        result["y"] = tools.to_float(self.y)
         return result
 
 
@@ -40,16 +37,16 @@ class Repeat:
     rotation: float
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Repeat':
+    def from_dict(obj: Any) -> "Repeat":
         assert isinstance(obj, dict)
         mode = RepeatMode(obj.get("mode"))
-        rotation = U3M.from_float(obj.get("rotation"))
+        rotation = tools.from_float(obj.get("rotation"))
         return Repeat(mode, rotation)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["mode"] = U3M.to_enum(RepeatMode, self.mode)
-        result["rotation"] = U3M.to_float(self.rotation)
+        result["mode"] = tools.to_enum(RepeatMode, self.mode)
+        result["rotation"] = tools.to_float(self.rotation)
         return result
 
 
@@ -58,10 +55,11 @@ class Image:
     """grayscale image without colorspace (do not convert)!, if multiple channels are given has
     to be converted to grayscale by averaging the 3 channels
 
-    color image, has to be converted to u3m standard colorspace before use
+    color image, has to be converted to U3M standard colorspace before use
 
     3 channel image without colorspace (do not convert)!, may need renormalizing in the shader
     """
+
     dpi: ImageDPI
     height: float
     """relative path to the image file"""
@@ -70,26 +68,26 @@ class Image:
     width: float
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'Image':
+    def from_dict(obj: Any, error_handler: Any) -> "Image":
         assert isinstance(obj, dict)
         dpi = ImageDPI.from_dict(obj.get("dpi"))
-        height = U3M.from_float(obj.get("height"))
-        path = RelativeFilePath(U3M.from_str(obj.get("path")), error_handler)
+        height = tools.from_float(obj.get("height"))
+        path = RelativeFilePath(tools.from_str(obj.get("path")), error_handler)
         if obj.get("repeat") is None:
-            default = {'mode': 'normal', 'rotation': 0}
+            default = {"mode": "normal", "rotation": 0}
             repeat = Repeat.from_dict(default)
         else:
             repeat = Repeat.from_dict(obj.get("repeat"))
-        width = U3M.from_float(obj.get("width"))
+        width = tools.from_float(obj.get("width"))
         return Image(dpi, height, path, repeat, width)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["dpi"] = U3M.to_class(ImageDPI, self.dpi)
-        result["height"] = U3M.to_float(self.height)
-        result["path"] = U3M.from_str(self.path.get_path())
-        result["repeat"] = U3M.to_class(Repeat, self.repeat)
-        result["width"] = U3M.to_float(self.width)
+        result["dpi"] = tools.to_class(ImageDPI, self.dpi)
+        result["height"] = tools.to_float(self.height)
+        result["path"] = tools.from_str(self.path.get_path())
+        result["repeat"] = tools.to_class(Repeat, self.repeat)
+        result["width"] = tools.to_float(self.width)
         return result
 
 
@@ -103,18 +101,18 @@ class ScalarTexture:
     offset: float
 
     @staticmethod
-    def from_dict(obj: Any, error_handler) -> 'ScalarTexture':
+    def from_dict(obj: Any, error_handler) -> "ScalarTexture":
         assert isinstance(obj, dict)
-        factor = U3M.from_float(obj.get("factor"))
+        factor = tools.from_float(obj.get("factor"))
         image = Image.from_dict(obj.get("image"), error_handler)
-        offset = U3M.from_float(obj.get("offset"))
+        offset = tools.from_float(obj.get("offset"))
         return ScalarTexture(factor, image, offset)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["factor"] = U3M.to_float(self.factor)
-        result["image"] = U3M.to_class(Image, self.image)
-        result["offset"] = U3M.to_float(self.offset)
+        result["factor"] = tools.to_float(self.factor)
+        result["image"] = tools.to_class(Image, self.image)
+        result["offset"] = tools.to_float(self.offset)
         return result
 
 
@@ -124,18 +122,22 @@ class TextureAndNumber01_1:
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber01_1':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber01_1":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float_01(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber01_1(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.from_float_01(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -147,44 +149,46 @@ class TextureAndNumber01_1:
             "texture": {
                 "factor": 0.0,
                 "image": {
-                    "dpi": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
+                    "dpi": {"x": 0.0, "y": 0.0},
                     "height": 1.0,
                     "path": "none",
-                    "repeat": {
-                            "mode": "normal",
-                            "rotation": 0
-                    },
-                    "width": 1.0
+                    "repeat": {"mode": "normal", "rotation": 0},
+                    "width": 1.0,
                 },
-                "offset": 0
-            }
+                "offset": 0,
+            },
         }
-        self.texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], template, error_handler)
+        self.texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            template,
+            error_handler,
+        )
 
 
 @dataclass
 class TextureAndNumber01_0:
     """value is in percent, to get to degree, multiply by 360"""
+
     constant: 0
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber01_0':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber01_0":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float_01(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber01_0(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.from_float_01(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -196,23 +200,20 @@ class TextureAndNumber01_0:
             "texture": {
                 "factor": 0.0,
                 "image": {
-                    "dpi": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
+                    "dpi": {"x": 0.0, "y": 0.0},
                     "height": 1.0,
                     "path": "none",
-                    "repeat": {
-                            "mode": "normal",
-                            "rotation": 0
-                    },
-                    "width": 1.0
+                    "repeat": {"mode": "normal", "rotation": 0},
+                    "width": 1.0,
                 },
-                "offset": 0
-            }
+                "offset": 0,
+            },
         }
-        self.texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], template, error_handler)
+        self.texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            template,
+            error_handler,
+        )
 
 
 @dataclass
@@ -221,18 +222,22 @@ class TextureAndNumber0:
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber0':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber0":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber0(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.to_float(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -244,48 +249,46 @@ class TextureAndNumber0:
             "texture": {
                 "factor": 0.0,
                 "image": {
-                    "dpi": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
+                    "dpi": {"x": 0.0, "y": 0.0},
                     "height": 1.0,
                     "path": "none",
-                    "repeat": {
-                            "mode": "normal",
-                            "rotation": 0
-                    },
-                    "width": 1.0
+                    "repeat": {"mode": "normal", "rotation": 0},
+                    "width": 1.0,
                 },
-                "offset": 0
-            }
+                "offset": 0,
+            },
         }
-        self.texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], template, error_handler)
+        self.texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            template,
+            error_handler,
+        )
 
 
 @dataclass
 class ColorRGB:
-    """color value in u3m standard colorspace
+    """color value in U3M standard colorspace
 
-    additional factor, in u3m standard colorspace
+    additional factor, in U3M standard colorspace
     """
+
     b: float
     g: float
     r: float
 
     @staticmethod
-    def from_dict(obj: Any) -> 'ColorRGB':
+    def from_dict(obj: Any) -> "ColorRGB":
         assert isinstance(obj, dict)
-        b = U3M.from_float(obj.get("b"))
-        g = U3M.from_float(obj.get("g"))
-        r = U3M.from_float(obj.get("r"))
+        b = tools.from_float(obj.get("b"))
+        g = tools.from_float(obj.get("g"))
+        r = tools.from_float(obj.get("r"))
         return ColorRGB(b, g, r)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["b"] = U3M.to_float(self.b)
-        result["g"] = U3M.to_float(self.g)
-        result["r"] = U3M.to_float(self.r)
+        result["b"] = tools.to_float(self.b)
+        result["g"] = tools.to_float(self.g)
+        result["r"] = tools.to_float(self.r)
         return result
 
 
@@ -301,14 +304,15 @@ class ColorTextureMode(Enum):
 
 @dataclass
 class ColorTexture:
-    """additional factor, in u3m standard colorspace"""
+    """additional factor, in U3M standard colorspace"""
+
     factor: ColorRGB
-    """color image, has to be converted to u3m standard colorspace before use"""
+    """color image, has to be converted to U3M standard colorspace before use"""
     image: Image
     mode: ColorTextureMode
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'ColorTexture':
+    def from_dict(obj: Any, error_handler: Any) -> "ColorTexture":
         assert isinstance(obj, dict)
         factor = ColorRGB.from_dict(obj.get("factor"))
         image = Image.from_dict(obj.get("image"), error_handler)
@@ -317,9 +321,9 @@ class ColorTexture:
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["factor"] = U3M.to_class(ColorRGB, self.factor)
-        result["image"] = U3M.to_class(Image, self.image)
-        result["mode"] = U3M.to_enum(ColorTextureMode, self.mode)
+        result["factor"] = tools.to_class(ColorRGB, self.factor)
+        result["image"] = tools.to_class(Image, self.image)
+        result["mode"] = tools.to_enum(ColorTextureMode, self.mode)
         return result
 
 
@@ -329,41 +333,35 @@ class TextureAndColor:
     texture: Optional[ColorTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndColor':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndColor":
         assert isinstance(obj, dict)
         constant = ColorRGB.from_dict(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ColorTexture.from_dict], obj.get("texture"), error_handler)
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ColorTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndColor(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_class(ColorRGB, self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ColorTexture, x)], self.texture)
+        result["constant"] = tools.to_class(ColorRGB, self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ColorTexture, x)], self.texture
+        )
         return result
 
     def add_texture(self, error_handler):
         template = {
-            "factor": {
-                "b": 1,
-                "g": 1,
-                "r": 1
-            },
+            "factor": {"b": 1, "g": 1, "r": 1},
             "image": {
-                "dpi": {
-                    "x": 1,
-                    "y": 1
-                },
+                "dpi": {"x": 1, "y": 1},
                 "height": 1,
                 "path": "none",
-                "repeat": {
-                    "mode": "normal",
-                    "rotation": 0
-                },
-                "width": 1
+                "repeat": {"mode": "normal", "rotation": 0},
+                "width": 1,
             },
-            "mode": "multiply"
+            "mode": "multiply",
         }
 
         self.texture = ColorTexture.from_dict(template, error_handler)
@@ -375,44 +373,46 @@ class TextureAndColor:
 @dataclass
 class Constant:
     """3 component vector, may need renormalizing in the shader"""
+
     x: float
     y: float
     z: float
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Constant':
+    def from_dict(obj: Any) -> "Constant":
         assert isinstance(obj, dict)
-        x = U3M.from_float(obj.get("x"))
-        y = U3M.from_float(obj.get("y"))
-        z = U3M.from_float(obj.get("z"))
+        x = tools.from_float(obj.get("x"))
+        y = tools.from_float(obj.get("y"))
+        z = tools.from_float(obj.get("z"))
         return Constant(x, y, z)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["x"] = U3M.to_float(self.x)
-        result["y"] = U3M.to_float(self.y)
-        result["z"] = U3M.to_float(self.z)
+        result["x"] = tools.to_float(self.x)
+        result["y"] = tools.to_float(self.y)
+        result["z"] = tools.to_float(self.z)
         return result
 
 
 @dataclass
 class NormalTexture:
     """3 channel image without colorspace (do not convert)!, may need renormalizing in the shader"""
+
     image: Image
     """scaling factor, multiplied to x & y component before renormalization"""
     scale: float
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'NormalTexture':
+    def from_dict(obj: Any, error_handler: Any) -> "NormalTexture":
         assert isinstance(obj, dict)
         image = Image.from_dict(obj.get("image"), error_handler)
-        scale = U3M.from_float(obj.get("scale"))
+        scale = tools.from_float(obj.get("scale"))
         return NormalTexture(image, scale)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["image"] = U3M.to_class(Image, self.image)
-        result["scale"] = U3M.to_float(self.scale)
+        result["image"] = tools.to_class(Image, self.image)
+        result["scale"] = tools.to_float(self.scale)
         return result
 
     def remove_texture(self):
@@ -422,22 +422,27 @@ class NormalTexture:
 @dataclass
 class TextureAndNormal:
     """3 component vector, may need renormalizing in the shader"""
+
     constant: Constant
     texture: Optional[NormalTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNormal':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNormal":
         assert isinstance(obj, dict)
         constant = Constant.from_dict(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, NormalTexture.from_dict], obj.get("texture"), error_handler)
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, NormalTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNormal(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_class(Constant, self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(NormalTexture, x)], self.texture)
+        result["constant"] = tools.to_class(Constant, self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(NormalTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -450,18 +455,22 @@ class TextureAndNumber1D4:
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber1D4':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber1D4":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber1D4(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.to_float(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -473,23 +482,20 @@ class TextureAndNumber1D4:
             "texture": {
                 "factor": 0.0,
                 "image": {
-                    "dpi": {
-                        "x": 0.0,
-                        "y": 0.0
-                    },
+                    "dpi": {"x": 0.0, "y": 0.0},
                     "height": 1.0,
                     "path": "none",
-                    "repeat": {
-                            "mode": "normal",
-                            "rotation": 0
-                    },
-                    "width": 1.0
+                    "repeat": {"mode": "normal", "rotation": 0},
+                    "width": 1.0,
                 },
-                "offset": 0
-            }
+                "offset": 0,
+            },
         }
-        self.texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], template, error_handler)
+        self.texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            template,
+            error_handler,
+        )
 
 
 @dataclass
@@ -498,16 +504,16 @@ class PreviewImageDPI:
     y: float
 
     @staticmethod
-    def from_dict(obj: Any) -> 'PreviewImageDPI':
+    def from_dict(obj: Any) -> "PreviewImageDPI":
         assert isinstance(obj, dict)
-        x = U3M.from_float(obj.get("x"))
-        y = U3M.from_float(obj.get("y"))
+        x = tools.from_float(obj.get("x"))
+        y = tools.from_float(obj.get("y"))
         return PreviewImageDPI(x, y)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["x"] = U3M.to_float(self.x)
-        result["y"] = U3M.to_float(self.y)
+        result["x"] = tools.to_float(self.x)
+        result["y"] = tools.to_float(self.y)
         return result
 
 
@@ -520,20 +526,20 @@ class PreviewImage:
     width: float
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'PreviewImage':
+    def from_dict(obj: Any, error_handler: Any) -> "PreviewImage":
         assert isinstance(obj, dict)
         dpi = PreviewImageDPI.from_dict(obj.get("dpi"))
-        height = U3M.from_float(obj.get("height"))
-        path = RelativeFilePath(U3M.from_str(obj.get("path")), error_handler)
-        width = U3M.from_float(obj.get("width"))
+        height = tools.from_float(obj.get("height"))
+        path = RelativeFilePath(tools.from_str(obj.get("path")), error_handler)
+        width = tools.from_float(obj.get("width"))
         return PreviewImage(dpi, height, path, width)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["dpi"] = U3M.to_class(PreviewImageDPI, self.dpi)
-        result["height"] = U3M.to_float(self.height)
-        result["path"] = U3M.from_str(self.path.get_path())
-        result["width"] = U3M.to_float(self.width)
+        result["dpi"] = tools.to_class(PreviewImageDPI, self.dpi)
+        result["height"] = tools.to_float(self.height)
+        result["path"] = tools.from_str(self.path.get_path())
+        result["width"] = tools.to_float(self.width)
         return result
 
 
@@ -543,18 +549,22 @@ class TextureAndNumber0D7:
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber0D7':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber0D7":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber0D7(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.to_float(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -568,22 +578,27 @@ class Shader(Enum):
 @dataclass
 class TextureAndNumber0D5:
     """value is defined on the segment [0%, 8%] -> 0.0 equals 0%, and 1.0 equals 8%"""
+
     constant: float
     texture: Optional[ScalarTexture] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'TextureAndNumber0D5':
+    def from_dict(obj: Any, error_handler: Any) -> "TextureAndNumber0D5":
         assert isinstance(obj, dict)
-        constant = U3M.from_float(obj.get("constant"))
-        texture = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, ScalarTexture.from_dict], obj.get("texture"), error_handler)
+        constant = tools.from_float(obj.get("constant"))
+        texture = tools.from_union_with_errors(
+            [tools.from_none_with_errors, ScalarTexture.from_dict],
+            obj.get("texture"),
+            error_handler,
+        )
         return TextureAndNumber0D5(constant, texture)
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["constant"] = U3M.to_float(self.constant)
-        result["texture"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(ScalarTexture, x)], self.texture)
+        result["constant"] = tools.to_float(self.constant)
+        result["texture"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(ScalarTexture, x)], self.texture
+        )
         return result
 
     def remove_texture(self):
@@ -618,50 +633,83 @@ class Visualisation:
     preview: Optional[PreviewImage] = None
 
     @staticmethod
-    def from_dict(obj: Any, error_handler: Any) -> 'Visualisation':
+    def from_dict(obj: Any, error_handler: Any) -> "Visualisation":
         assert isinstance(obj, dict)
         alpha = TextureAndNumber01_1.from_dict(obj.get("alpha"), error_handler)
         anisotropy_rotation = TextureAndNumber01_0.from_dict(
-            obj.get("anisotropy_rotation"), error_handler)
+            obj.get("anisotropy_rotation"), error_handler
+        )
         anisotropy_value = TextureAndNumber0.from_dict(
-            obj.get("anisotropy_value"), error_handler)
-        basecolor = TextureAndColor.from_dict(
-            obj.get("basecolor"), error_handler)
+            obj.get("anisotropy_value"), error_handler
+        )
+        basecolor = TextureAndColor.from_dict(obj.get("basecolor"), error_handler)
         clearcoat_normal = TextureAndNormal.from_dict(
-            obj.get("clearcoat_normal"), error_handler)
+            obj.get("clearcoat_normal"), error_handler
+        )
         clearcoat_roughness = TextureAndNumber0.from_dict(
-            obj.get("clearcoat_roughness"), error_handler)
+            obj.get("clearcoat_roughness"), error_handler
+        )
         clearcoat_value = TextureAndNumber0.from_dict(
-            obj.get("clearcoat_value"), error_handler)
+            obj.get("clearcoat_value"), error_handler
+        )
         displacement = TextureAndNumber0.from_dict(
-            obj.get("displacement"), error_handler)
+            obj.get("displacement"), error_handler
+        )
         ior = TextureAndNumber1D4.from_dict(obj.get("ior"), error_handler)
-        metalness = TextureAndNumber01_0.from_dict(
-            obj.get("metalness"), error_handler)
+        metalness = TextureAndNumber01_0.from_dict(obj.get("metalness"), error_handler)
         normal = TextureAndNormal.from_dict(obj.get("normal"), error_handler)
-        roughness = TextureAndNumber0D7.from_dict(
-            obj.get("roughness"), error_handler)
+        roughness = TextureAndNumber0D7.from_dict(obj.get("roughness"), error_handler)
         shader = Shader(obj.get("shader"))
-        sheen_tint = TextureAndNumber0.from_dict(
-            obj.get("sheen_tint"), error_handler)
-        sheen_value = TextureAndNumber0.from_dict(
-            obj.get("sheen_value"), error_handler)
+        sheen_tint = TextureAndNumber0.from_dict(obj.get("sheen_tint"), error_handler)
+        sheen_value = TextureAndNumber0.from_dict(obj.get("sheen_value"), error_handler)
         specular_tint = TextureAndNumber0.from_dict(
-            obj.get("specular_tint"), error_handler)
+            obj.get("specular_tint"), error_handler
+        )
         specular_value = TextureAndNumber0D5.from_dict(
-            obj.get("specular_value"), error_handler)
+            obj.get("specular_value"), error_handler
+        )
         subsurface_color = TextureAndColor.from_dict(
-            obj.get("subsurface_color"), error_handler)
+            obj.get("subsurface_color"), error_handler
+        )
         subsurface_radius = TextureAndNumber0.from_dict(
-            obj.get("subsurface_radius"), error_handler)
+            obj.get("subsurface_radius"), error_handler
+        )
         subsurface_value = TextureAndNumber0.from_dict(
-            obj.get("subsurface_value"), error_handler)
+            obj.get("subsurface_value"), error_handler
+        )
         transmission = TextureAndNumber01_0.from_dict(
-            obj.get("transmission"), error_handler)
-        preview = U3M.from_union_with_errors(
-            [U3M.from_none_with_errors, PreviewImage.from_dict], obj.get("preview"), error_handler)
+            obj.get("transmission"), error_handler
+        )
+        preview = tools.from_union_with_errors(
+            [tools.from_none_with_errors, PreviewImage.from_dict],
+            obj.get("preview"),
+            error_handler,
+        )
 
-        return Visualisation(alpha, anisotropy_rotation, anisotropy_value, basecolor, clearcoat_normal, clearcoat_roughness, clearcoat_value, displacement, ior, metalness, normal, roughness, shader, sheen_tint, sheen_value, specular_tint, specular_value, subsurface_color, subsurface_radius, subsurface_value, transmission, preview)
+        return Visualisation(
+            alpha,
+            anisotropy_rotation,
+            anisotropy_value,
+            basecolor,
+            clearcoat_normal,
+            clearcoat_roughness,
+            clearcoat_value,
+            displacement,
+            ior,
+            metalness,
+            normal,
+            roughness,
+            shader,
+            sheen_tint,
+            sheen_value,
+            specular_tint,
+            specular_value,
+            subsurface_color,
+            subsurface_radius,
+            subsurface_value,
+            transmission,
+            preview,
+        )
 
     def get(self, viz_prop):
         if viz_prop == "alpha":
@@ -709,41 +757,46 @@ class Visualisation:
 
     def to_dict(self) -> dict:
         result: dict = {}
-        result["alpha"] = U3M.to_class(TextureAndNumber01_1, self.alpha)
-        result["anisotropy_rotation"] = U3M.to_class(
-            TextureAndNumber01_0, self.anisotropy_rotation)
-        result["anisotropy_value"] = U3M.to_class(
-            TextureAndNumber0, self.anisotropy_value)
-        result["basecolor"] = U3M.to_class(TextureAndColor, self.basecolor)
-        result["clearcoat_normal"] = U3M.to_class(
-            TextureAndNormal, self.clearcoat_normal)
-        result["clearcoat_roughness"] = U3M.to_class(
-            TextureAndNumber0, self.clearcoat_roughness)
-        result["clearcoat_value"] = U3M.to_class(
-            TextureAndNumber0, self.clearcoat_value)
-        result["displacement"] = U3M.to_class(
-            TextureAndNumber0, self.displacement)
-        result["ior"] = U3M.to_class(TextureAndNumber1D4, self.ior)
-        result["metalness"] = U3M.to_class(
-            TextureAndNumber01_0, self.metalness)
-        result["normal"] = U3M.to_class(TextureAndNormal, self.normal)
-        result["roughness"] = U3M.to_class(TextureAndNumber0D7, self.roughness)
-        result["shader"] = U3M.to_enum(Shader, self.shader)
-        result["sheen_tint"] = U3M.to_class(TextureAndNumber0, self.sheen_tint)
-        result["sheen_value"] = U3M.to_class(
-            TextureAndNumber0, self.sheen_value)
-        result["specular_tint"] = U3M.to_class(
-            TextureAndNumber0, self.specular_tint)
-        result["specular_value"] = U3M.to_class(
-            TextureAndNumber0D5, self.specular_value)
-        result["subsurface_color"] = U3M.to_class(
-            TextureAndColor, self.subsurface_color)
-        result["subsurface_radius"] = U3M.to_class(
-            TextureAndNumber0, self.subsurface_radius)
-        result["subsurface_value"] = U3M.to_class(
-            TextureAndNumber0, self.subsurface_value)
-        result["transmission"] = U3M.to_class(
-            TextureAndNumber01_0, self.transmission)
-        result["preview"] = U3M.from_union(
-            [U3M.from_none, lambda x: U3M.to_class(PreviewImage, x)], self.preview)
+        result["alpha"] = tools.to_class(TextureAndNumber01_1, self.alpha)
+        result["anisotropy_rotation"] = tools.to_class(
+            TextureAndNumber01_0, self.anisotropy_rotation
+        )
+        result["anisotropy_value"] = tools.to_class(
+            TextureAndNumber0, self.anisotropy_value
+        )
+        result["basecolor"] = tools.to_class(TextureAndColor, self.basecolor)
+        result["clearcoat_normal"] = tools.to_class(
+            TextureAndNormal, self.clearcoat_normal
+        )
+        result["clearcoat_roughness"] = tools.to_class(
+            TextureAndNumber0, self.clearcoat_roughness
+        )
+        result["clearcoat_value"] = tools.to_class(
+            TextureAndNumber0, self.clearcoat_value
+        )
+        result["displacement"] = tools.to_class(TextureAndNumber0, self.displacement)
+        result["ior"] = tools.to_class(TextureAndNumber1D4, self.ior)
+        result["metalness"] = tools.to_class(TextureAndNumber01_0, self.metalness)
+        result["normal"] = tools.to_class(TextureAndNormal, self.normal)
+        result["roughness"] = tools.to_class(TextureAndNumber0D7, self.roughness)
+        result["shader"] = tools.to_enum(Shader, self.shader)
+        result["sheen_tint"] = tools.to_class(TextureAndNumber0, self.sheen_tint)
+        result["sheen_value"] = tools.to_class(TextureAndNumber0, self.sheen_value)
+        result["specular_tint"] = tools.to_class(TextureAndNumber0, self.specular_tint)
+        result["specular_value"] = tools.to_class(
+            TextureAndNumber0D5, self.specular_value
+        )
+        result["subsurface_color"] = tools.to_class(
+            TextureAndColor, self.subsurface_color
+        )
+        result["subsurface_radius"] = tools.to_class(
+            TextureAndNumber0, self.subsurface_radius
+        )
+        result["subsurface_value"] = tools.to_class(
+            TextureAndNumber0, self.subsurface_value
+        )
+        result["transmission"] = tools.to_class(TextureAndNumber01_0, self.transmission)
+        result["preview"] = tools.from_union(
+            [tools.from_none, lambda x: tools.to_class(PreviewImage, x)], self.preview
+        )
         return result

@@ -3,7 +3,7 @@
 ## **About:** 
 The U3M Blender Add-on allows you to import/export any [Unified 3D Material](https://github.com/vizoogmbh/u3m) to/from [Blender](https://www.blender.org/).<br/> The included 'U3M Editor' gives you full control over modifying the accurately imported texture maps and parameters of your U3M. 
 The Add-on supports all current versions (v1.0 & v1.1) of the U3M fileformat (*.u3m).<br/><br/> 
-This version supports Blender 4.5 LTS. Due to breaking changes, it is not compatible with older versions. If you want to use it with Blender 2 or 3, use an add-on version lower than 1.2.x.
+This version supports Blender 4.2 LTS and newer, including Blender 5.2 LTS. It is not compatible with Blender 2.x or 3.x. Please use an add-on version earlier than 1.2.x for those versions.
 
 ### Installing & Enabling the Add-on:
 To install the add-on, download the latest release zip from the GitHub Releases section of this repository, where it can be found attached to the corresponding version tag.
@@ -34,7 +34,7 @@ After importing a U3M, you can modify and export it again via:<br/>
 Note: *All changes applied to the U3M via the 'U3M Editor' can be exported. This does not include any additional nodes added manually to the shader.*
 
 ## **Copyright & License**
-Copyright 2020-2025 Vizoo GmbH<br/>
+Copyright 2020-2026 Vizoo GmbH<br/>
 [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.txt)<br/>
 
 ## **Contact** 

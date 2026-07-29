@@ -1,11 +1,11 @@
-from import_export_U3M.blender import utils as Blender
+from .blender import utils as Blender
 
 
 class InitOperatorBase(object):
 
     def execute(self, context):
         u3m_init()
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class ViewOperatorBase(object):
@@ -14,14 +14,14 @@ class ViewOperatorBase(object):
 
     def execute(self, context):
         set_view(self.view_name)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class RenderPreviewBase(object):
 
     def execute(self, context):
         render_preview()
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 def u3m_init():
@@ -45,7 +45,10 @@ def set_view(view_name):
             obj.select_set(True)
             Blender.set_active(obj)
             if active_mat:
-                if Blender.is_u3m(active_mat) is True and Blender.is_u3m(obj.active_material) is True:
+                if (
+                    Blender.is_u3m(active_mat) is True
+                    and Blender.is_u3m(obj.active_material) is True
+                ):
                     obj.active_material = active_mat
                     Blender.set_u3m_scale()
                     break
@@ -53,5 +56,4 @@ def set_view(view_name):
 
 
 def render_preview():
-    print("render preview")
     Blender.render()

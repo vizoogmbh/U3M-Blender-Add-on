@@ -1,5 +1,4 @@
 import bpy
-from bpy.props import FloatProperty
 
 from .blender.blender_classes import (
     ImportU3M,
@@ -20,36 +19,25 @@ from .blender.blender_classes import (
     InitOperator,
     LoadTextureOperator,
     RemoveTextureOperator,
-    ErrorMessageConfirmation
+    ErrorMessageConfirmation,
 )
 
 
 def set_scale(self, context):
-    U3MScaleOperator.set(self, context, context.object, context.scene.u3m_scale_x,
-                         context.scene.u3m_scale_y, context.scene.u3m_size)
-
-
-bpy.types.Scene.u3m_scale_x = bpy.props.FloatProperty(
-    update=set_scale, name="shader scale x", description="shader scale (x)", min=0.001, max=1000000.0, default=0.01)
-bpy.types.Scene.u3m_scale_y = bpy.props.FloatProperty(
-    update=set_scale, name="shader scale y", description="shader scale (y)", min=0.001, max=1000000.0, default=0.01)
-bpy.types.Scene.u3m_size = bpy.props.FloatProperty(
-    update=set_scale, name="Size (%)", description="material size (scaling factor) in percent", min=0.001, max=10000.0, default=100.00)
-
-bpy.types.Scene.u3m_alpha_enabled = bpy.props.BoolProperty(
-        name="Enable Alpha",
-        description="Enable or disable alpha channel for U3M materials",
-        default=True
+    U3MScaleOperator.apply_scale(
+        context.object,
+        context.scene.u3m_scale_x,
+        context.scene.u3m_scale_y,
+        context.scene.u3m_size,
     )
 
+
 def menu_func_import(self, context):
-    self.layout.operator(ImportU3M.bl_idname,
-                         text="Unified 3D Material (.u3m)")
+    self.layout.operator(ImportU3M.bl_idname, text="Unified 3D Material (.u3m)")
 
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportU3M.bl_idname,
-                         text="Unified 3D Material (.u3m)")
+    self.layout.operator(ExportU3M.bl_idname, text="Unified 3D Material (.u3m)")
 
 
 classes = (
@@ -67,23 +55,76 @@ classes = (
     ViewOperator,
     AddSideOperator,
     RemoveSideOperator,
-    ToggleAlphaOperator, 
+    ToggleAlphaOperator,
     InitOperator,
     LoadTextureOperator,
     RemoveTextureOperator,
-    ErrorMessageConfirmation
+    ErrorMessageConfirmation,
 )
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    bpy.types.Scene.u3m_scale_x = bpy.props.FloatProperty(
+        update=set_scale,
+        name="shader scale x",
+        description="shader scale (x)",
+        min=0.001,
+        max=1000000.0,
+        default=0.01,
+    )
+
+    bpy.types.Scene.u3m_scale_y = bpy.props.FloatProperty(
+        update=set_scale,
+        name="shader scale y",
+        description="shader scale (y)",
+        min=0.001,
+        max=1000000.0,
+        default=0.01,
+    )
+
+    bpy.types.Scene.u3m_size = bpy.props.FloatProperty(
+        update=set_scale,
+        name="Size (%)",
+        description="material size (scaling factor) in percent",
+        min=0.001,
+        max=10000.0,
+        default=100.00,
+    )
+
+    bpy.types.Scene.u3m_alpha_enabled = bpy.props.BoolProperty(
+        name="Enable Alpha",
+        description="Enable or disable alpha channel for U3M materials",
+        default=True,
+    )
+
+    bpy.types.Scene.u3m_width = bpy.props.FloatProperty(
+        name="Width (mm/repeat)", description="Texture width", default=0.0
+    )
+
+    bpy.types.Scene.u3m_height = bpy.props.FloatProperty(
+        name="Height (mm/repeat)", description="Texture height", default=0.0
+    )
+
+    bpy.types.Scene.error_message = bpy.props.StringProperty()
+
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def unregister():
-    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    del bpy.types.Scene.u3m_scale_x
+    del bpy.types.Scene.u3m_scale_y
+    del bpy.types.Scene.u3m_size
+    del bpy.types.Scene.u3m_alpha_enabled
+    del bpy.types.Scene.u3m_width
+    del bpy.types.Scene.u3m_height
+    del bpy.types.Scene.error_message
+
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
